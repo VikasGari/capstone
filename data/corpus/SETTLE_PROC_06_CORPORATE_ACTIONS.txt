@@ -1,0 +1,6 @@
+DOCUMENT ID: SETTLE_PROC_06_CORPORATE_ACTIONS
+DOCUMENT TITLE: Corporate Action Settlements
+CATEGORY: Settlement and Payout Procedures
+========================================
+Clause 6.1: Dividends and Splits
+Dividend credits are directly paid by the registrar to the client's bank account. Share splits and bonus shares are credited to the DP account on the ex-date + 2 working days.

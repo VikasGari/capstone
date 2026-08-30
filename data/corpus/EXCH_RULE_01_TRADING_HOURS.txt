@@ -1,0 +1,12 @@
+DOCUMENT ID: EXCH_RULE_01_TRADING_HOURS
+DOCUMENT TITLE: Exchange Trading Hours
+CATEGORY: Exchange Rulebook
+========================================
+Clause 1.1: Normal Market Hours
+The equity and derivatives (F&O) segments are open for trading from Monday to Friday. The pre-open session runs from 09:00 hours to 09:15 hours. The normal trading market hours are from 09:15 hours to 15:30 hours.
+
+Clause 1.2: Post-Closing Session
+The post-closing trading session is conducted between 15:40 hours and 16:00 hours. Transactions during this session are executed at the closing price of the security.
+
+Clause 1.3: Weekly Holidays
+The exchange remains closed on Saturdays and Sundays, and on public holidays declared by the exchange in advance at the start of the calendar year.

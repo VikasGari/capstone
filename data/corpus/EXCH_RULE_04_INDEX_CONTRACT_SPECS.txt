@@ -1,0 +1,12 @@
+DOCUMENT ID: EXCH_RULE_04_INDEX_CONTRACT_SPECS
+DOCUMENT TITLE: Index Derivatives Specifications
+CATEGORY: Exchange Rulebook
+========================================
+Clause 4.1: Contract Expiry
+Index futures and options contracts expire on the last Thursday of the expiry month. If the last Thursday is a holiday, the contracts expire on the preceding working day.
+
+Clause 4.2: Lot Sizes
+The contract lot size is determined by the exchange periodically. The lot size for Nifty Futures is 75 units, and the lot size for Bank Nifty Futures is 15 units.
+
+Clause 4.3: Tick Size
+The minimum price movement (tick size) for index futures and options contracts is set at 0.05 currency units.

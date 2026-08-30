@@ -1,0 +1,6 @@
+DOCUMENT ID: MARGIN_POL_08_OPTION_WRITING_MARGINS
+DOCUMENT TITLE: Option Writing Margins
+CATEGORY: Margin & F&O Policy
+========================================
+Clause 8.1: Naked Option Writing
+Option writers (sellers) must maintain full SPAN + Exposure margin. Writing naked options is permitted only if the client's account net equity exceeds 50,000 currency units.

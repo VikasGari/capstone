@@ -1,0 +1,9 @@
+DOCUMENT ID: EXCH_RULE_09_ALGO_TRADING_RULES
+DOCUMENT TITLE: Algorithmic Trading Regulations
+CATEGORY: Exchange Rulebook
+========================================
+Clause 9.1: Prior Approval
+All algorithmic trading strategies must receive prior approval from the exchange before deployment. Unapproved algorithms are strictly prohibited and subject to a penalty of 100,000 currency units.
+
+Clause 9.2: Order-to-Trade Ratio
+Brokers must maintain an Order-to-Trade Ratio (OTR) of less than 50:1 daily. Exceeding this ratio attracts progressive economic charges.

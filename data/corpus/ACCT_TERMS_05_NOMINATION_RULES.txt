@@ -1,0 +1,6 @@
+DOCUMENT ID: ACCT_TERMS_05_NOMINATION_RULES
+DOCUMENT TITLE: Nomination Regulations
+CATEGORY: Account-Opening & Trading Terms
+========================================
+Clause 5.1: Mandatory Declaration
+It is mandatory for all individual demat and trading accounts to either nominate a beneficiary or explicitly opt out of nomination by submitting the nomination declaration form.

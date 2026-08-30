@@ -1,0 +1,12 @@
+DOCUMENT ID: FEES_SCHED_02_GOVT_TAXES
+DOCUMENT TITLE: Government Taxes and Levies
+CATEGORY: Fees & Brokerage Schedule
+========================================
+Clause 2.1: Securities Transaction Tax (STT)
+- Equity Delivery: STT is charged at 0.1% on both buy and sell transactions.
+- Equity Intraday: STT is charged at 0.025% on sell transactions only.
+- Equity Futures: STT is charged at 0.0125% on sell transactions only.
+- Equity Options: STT is charged at 0.0625% on sell transactions only (on option premium).
+
+Clause 2.2: Goods and Services Tax (GST)
+GST is charged at a rate of 18% on the sum of brokerage charges, exchange transaction charges, and SEBI turnover fees.

@@ -1,0 +1,9 @@
+DOCUMENT ID: MARGIN_POL_07_INTRA_DAY_LEVERAGE
+DOCUMENT TITLE: Intraday Leverage Limits
+CATEGORY: Margin & F&O Policy
+========================================
+Clause 7.1: Equity Delivery Leverage
+No leverage is provided for Equity Delivery trades. 100% of the purchase value must be paid by the client upfront.
+
+Clause 7.2: Equity Intraday (MIS) Leverage
+Intraday trades in highly liquid stocks are allowed up to 5x leverage (or 20% margin requirement). F&O intraday trades do not receive extra leverage beyond the exchange prescribed margins.

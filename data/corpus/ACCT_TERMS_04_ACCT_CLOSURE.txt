@@ -1,0 +1,9 @@
+DOCUMENT ID: ACCT_TERMS_04_ACCT_CLOSURE
+DOCUMENT TITLE: Account Closure Procedure
+CATEGORY: Account-Opening & Trading Terms
+========================================
+Clause 4.1: Closure Requirements
+An account closure request can only be processed if there are no open positions in the F&O segment, no debit balance in the ledger, and no holding of securities in the Demat account. All holdings must be sold or transferred.
+
+Clause 4.2: Processing Timeline
+The brokerage must process a valid account closure request within 3 working days from the date of submission of the physical or digital request form.

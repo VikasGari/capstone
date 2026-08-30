@@ -1,0 +1,6 @@
+DOCUMENT ID: SETTLE_PROC_03_BANK_CUTOFFS
+DOCUMENT TITLE: Bank Integration Cutoffs
+CATEGORY: Settlement and Payout Procedures
+========================================
+Clause 3.1: Net Banking Cutoffs
+Net Banking fund transfers are supported 24/7. However, bank maintenance windows between 23:00 hours and 01:30 hours daily may cause transfer delays of up to 2 hours.

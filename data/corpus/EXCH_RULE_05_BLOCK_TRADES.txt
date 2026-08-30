@@ -1,0 +1,12 @@
+DOCUMENT ID: EXCH_RULE_05_BLOCK_TRADES
+DOCUMENT TITLE: Block Trade Guidelines
+CATEGORY: Exchange Rulebook
+========================================
+Clause 5.1: Block Deal Window
+Block deals are executed during a special window. The morning window is open from 08:45 hours to 09:00 hours. The afternoon window is open from 14:05 hours to 14:20 hours.
+
+Clause 5.2: Minimum Deal Value
+A transaction qualifies as a block deal only if the minimum order value is 100 million currency units.
+
+Clause 5.3: Execution Price
+The execution price of a block deal must be within a range of +/- 1% of the current market price or previous closing price.

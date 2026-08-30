@@ -1,0 +1,6 @@
+DOCUMENT ID: EXCH_RULE_10_ERROR_TRADE_POLICY
+DOCUMENT TITLE: Error Trade Policy
+CATEGORY: Exchange Rulebook
+========================================
+Clause 10.1: Cancellation Request
+A broker can request the cancellation of an error trade within 30 minutes of trade execution. The exchange reserves the right to accept or reject the trade cancellation request.

@@ -1,0 +1,9 @@
+DOCUMENT ID: FEES_SCHED_03_OTHER_CHARGES
+DOCUMENT TITLE: Other Statutory Charges
+CATEGORY: Fees & Brokerage Schedule
+========================================
+Clause 3.1: SEBI Turnover Fee
+SEBI turnover fee is charged at a flat rate of 0.0001% (10 currency units per 10 million) of the total transaction turnover across all trading segments.
+
+Clause 3.2: Stamp Duty
+Stamp duty is charged at 0.015% (buy transactions only) for Equity Delivery, 0.003% for Equity Intraday, and 0.002% for Futures. Stamp duty for Option contracts is 0.003% on premium value.

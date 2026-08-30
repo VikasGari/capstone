@@ -1,0 +1,9 @@
+DOCUMENT ID: MARGIN_POL_04_MARGIN_CALLS
+DOCUMENT TITLE: Margin Call Guidelines
+CATEGORY: Margin & F&O Policy
+========================================
+Clause 4.1: Shortfall Notification
+A Margin Call is triggered when the available margin falls below 100% of the required margin. The client is notified via registered email and SMS to deposit funds immediately.
+
+Clause 4.2: Funding Timeline
+The client must fulfill the margin call shortfall before 23:59 hours on the day the margin call is made. Failure to deposit funds results in automatic square-off on the next trading day at market open.

@@ -1,0 +1,11 @@
+DOCUMENT ID: MARGIN_POL_01_SPAN_EXPOSURE
+DOCUMENT TITLE: SPAN and Exposure Margins
+CATEGORY: Margin & F&O Policy
+========================================
+Clause 1.1: Margin Composition
+For trading in the F&O segment, the client must maintain both SPAN Margin and Exposure Margin.
+- The SPAN Margin is calculated based on portfolio risk metrics.
+- The Exposure Margin is set by the brokerage as a safety buffer, typically 3.5% of the total contract value.
+
+Clause 1.2: Minimum Margin Requirements
+The total margin (SPAN + Exposure) must be present in the account in cash or approved collateral before executing a trade. The minimum initial margin requirement for Index Futures is 12% of the contract value.
