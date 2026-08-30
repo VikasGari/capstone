@@ -39,25 +39,21 @@ class ConfigManager:
 
     def get_section(self, section_name: str, local_defaults: dict = None) -> dict:
         """
-        Retrieves a configuration section, merging local defaults with global overrides.
-        Rules:
-        1. Start with local defaults (lowest priority).
-        2. Override with global config values (medium priority).
-        3. Override with environment variables if mapped (highest priority).
+        Retrieves a configuration section from the global YAML configuration.
+        Optionally merges local defaults, and overrides with environment variables.
         """
+        global_section = self.global_config.get(section_name, {})
         merged_config = {}
         if local_defaults:
             merged_config.update(local_defaults)
-        
-        # Override with global configuration (Global overrides Local)
-        global_section = self.global_config.get(section_name, {})
+            
         if isinstance(global_section, dict):
             for key, val in global_section.items():
                 merged_config[key] = val
         
         # Override specific keys with environment variables if available
         # e.g., GEMINI_API_KEY
-        for key in merged_config.keys():
+        for key in list(merged_config.keys()):
             env_key = f"{section_name.upper()}_{key.upper()}"
             if env_key in os.environ:
                 merged_config[key] = os.environ[env_key]

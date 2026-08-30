@@ -15,39 +15,21 @@ class IngestionPipeline:
     def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
         self.config_manager = config_manager or ConfigManager()
         
-        # Local default configurations
-        local_defaults = {
-            "model_name": "sentence-transformers/all-MiniLM-L6-v2",
-            "persist_directory": "data/chroma_db",
-            "collection_name": "trading_policy_collection",
-            "chunk_size": 600,
-            "chunk_overlap": 100,
-            "corpus_directory": "data/corpus"
-        }
-        
-        # Merge defaults with global overrides (Global config has higher precedence)
+        # Fetch configuration sections directly from global config
         embedding_cfg = self.config_manager.get_section("embedding")
         vstore_cfg = self.config_manager.get_section("vector_store")
         chunking_cfg = self.config_manager.get_section("chunking")
         paths_cfg = self.config_manager.get_section("paths")
         
-        self.config = local_defaults.copy()
+        self.config = {
+            "model_name": embedding_cfg.get("model_name"),
+            "persist_directory": vstore_cfg.get("persist_directory"),
+            "collection_name": vstore_cfg.get("collection_name"),
+            "chunk_size": chunking_cfg.get("chunk_size"),
+            "chunk_overlap": chunking_cfg.get("chunk_overlap"),
+            "corpus_directory": paths_cfg.get("corpus_directory")
+        }
         
-        # Override with global configuration settings
-        if "model_name" in embedding_cfg:
-            self.config["model_name"] = embedding_cfg["model_name"]
-        if "persist_directory" in vstore_cfg:
-            self.config["persist_directory"] = vstore_cfg["persist_directory"]
-        if "collection_name" in vstore_cfg:
-            self.config["collection_name"] = vstore_cfg["collection_name"]
-        if "chunk_size" in chunking_cfg:
-            self.config["chunk_size"] = chunking_cfg["chunk_size"]
-        if "chunk_overlap" in chunking_cfg:
-            self.config["chunk_overlap"] = chunking_cfg["chunk_overlap"]
-        if "corpus_directory" in paths_cfg:
-            self.config["corpus_directory"] = paths_cfg["corpus_directory"]
-            
-        # Apply local instantiator overrides if provided
         if local_overrides:
             self.config.update(local_overrides)
 

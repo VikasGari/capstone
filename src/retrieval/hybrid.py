@@ -1,152 +1,65 @@
-import re
-import numpy as np
 import chromadb
-from rank_bm25 import BM25Okapi
 from config.config_manager import ConfigManager
+from src.retrieval.bm25 import BM25Retriever
+from src.retrieval.semantic import SemanticRetriever
 
 class HybridRetriever:
     """
-    Combines Vector semantic search and BM25 lexical search.
-    Fuses rankings using Reciprocal Rank Fusion (RRF).
+    Orchestrates Vector semantic search and BM25 lexical search.
+    Fuses candidate rankings using Reciprocal Rank Fusion (RRF).
     """
     def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
         self.config_manager = config_manager or ConfigManager()
         
-        # Local defaults
-        local_defaults = {
-            "persist_directory": "data/chroma_db",
-            "collection_name": "trading_policy_collection",
-            "top_k_semantic": 10,
-            "top_k_bm25": 10,
-            "rrf_k": 60
-        }
-        
-        # Merge with global overrides (Global config has higher precedence)
+        # Load configuration sections directly from global config
         vstore_cfg = self.config_manager.get_section("vector_store")
         retrieval_cfg = self.config_manager.get_section("retrieval")
         
-        self.config = local_defaults.copy()
+        self.config = {
+            "persist_directory": vstore_cfg.get("persist_directory"),
+            "collection_name": vstore_cfg.get("collection_name"),
+            "top_k_semantic": retrieval_cfg.get("top_k_semantic"),
+            "top_k_bm25": retrieval_cfg.get("top_k_bm25"),
+            "rrf_k": retrieval_cfg.get("rrf_k")
+        }
         
-        if "persist_directory" in vstore_cfg:
-            self.config["persist_directory"] = vstore_cfg["persist_directory"]
-        if "collection_name" in vstore_cfg:
-            self.config["collection_name"] = vstore_cfg["collection_name"]
-        if "top_k_semantic" in retrieval_cfg:
-            self.config["top_k_semantic"] = retrieval_cfg["top_k_semantic"]
-        if "top_k_bm25" in retrieval_cfg:
-            self.config["top_k_bm25"] = retrieval_cfg["top_k_bm25"]
-        if "rrf_k" in retrieval_cfg:
-            self.config["rrf_k"] = retrieval_cfg["rrf_k"]
-            
         if local_overrides:
             self.config.update(local_overrides)
             
-        # Initialize chroma client and get collection details
+        # Initialize the persistent client
         self.client = chromadb.PersistentClient(path=self.config["persist_directory"])
-        self.collection_name = self.config["collection_name"]
         
-        # Setup lazy initialization of BM25
-        self.bm25 = None
-        self.corpus_chunks = []
-        
-    def _initialize_bm25(self):
-        """Loads all documents from Chroma collection and fits BM25."""
-        try:
-            collection = self.client.get_collection(self.collection_name)
-        except Exception as e:
-            print(f"Error fetching collection '{self.collection_name}'. Has ingestion run? {e}")
-            return
-            
-        # Get all entries (documents, metadatas, ids)
-        results = collection.get(include=["documents", "metadatas"])
-        if not results or not results["documents"]:
-            print(f"Warning: Chroma collection '{self.collection_name}' is empty. Cannot initialize BM25.")
-            return
-            
-        self.corpus_chunks = []
-        tokenized_corpus = []
-        
-        for idx, doc in enumerate(results["documents"]):
-            chunk_data = {
-                "id": results["ids"][idx],
-                "document": doc,
-                "metadata": results["metadatas"][idx]
-            }
-            self.corpus_chunks.append(chunk_data)
-            
-            # Simple tokenization for BM25 (lowercased alphanumeric tokens)
-            tokens = self._tokenize(doc)
-            tokenized_corpus.append(tokens)
-            
-        if tokenized_corpus:
-            self.bm25 = BM25Okapi(tokenized_corpus)
-            print(f"BM25 retriever successfully initialized on {len(self.corpus_chunks)} chunks.")
+        # Instantiate subcomponents, passing the resolved config containing any overrides
+        self.bm25_retriever = BM25Retriever(self.config_manager, self.client, self.config)
+        self.semantic_retriever = SemanticRetriever(self.config_manager, self.client, self.config)
 
-    def _tokenize(self, text: str) -> list[str]:
-        """Simple tokenizer that converts text to alphanumeric lowercase tokens."""
-        return re.findall(r"\w+", text.lower())
+    # Expose helper to fit index (used in API and evaluation harness)
+    def _initialize_bm25(self):
+        self.bm25_retriever._initialize_bm25()
+
+    @property
+    def bm25(self):
+        return self.bm25_retriever.bm25
+        
+    @bm25.setter
+    def bm25(self, value):
+        self.bm25_retriever.bm25 = value
+        
+    @property
+    def corpus_chunks(self):
+        return self.bm25_retriever.corpus_chunks
+        
+    @corpus_chunks.setter
+    def corpus_chunks(self, value):
+        self.bm25_retriever.corpus_chunks = value
 
     def retrieve_semantic(self, query: str, top_k: int = None) -> list[dict]:
-        """Queries the Chroma collection using semantic search."""
-        if top_k is None:
-            top_k = int(self.config["top_k_semantic"])
-            
-        try:
-            collection = self.client.get_collection(self.collection_name)
-        except Exception as e:
-            print(f"Error getting collection: {e}")
-            return []
-            
-        results = collection.query(
-            query_texts=[query],
-            n_results=top_k,
-            include=["documents", "metadatas", "distances"]
-        )
-        
-        retrieved = []
-        if results and results["documents"] and results["documents"][0]:
-            for idx in range(len(results["documents"][0])):
-                # Chroma returns 'distances' (usually L2 distance for cosine/L2 metric).
-                # Convert L2 distance or cosine distance to score if needed.
-                dist = results["distances"][0][idx]
-                retrieved.append({
-                    "id": results["ids"][0][idx],
-                    "document": results["documents"][0][idx],
-                    "metadata": results["metadatas"][0][idx],
-                    "score": float(1.0 / (1.0 + dist)) # Map distance to a pseudo-similarity score
-                })
-        return retrieved
+        """Delegates semantic retrieval to the SemanticRetriever subcomponent."""
+        return self.semantic_retriever.retrieve(query, top_k)
 
     def retrieve_bm25(self, query: str, top_k: int = None) -> list[dict]:
-        """Queries the corpus using BM25 lexical search."""
-        if self.bm25 is None:
-            self._initialize_bm25()
-            
-        if self.bm25 is None:
-            return []
-            
-        if top_k is None:
-            top_k = int(self.config["top_k_bm25"])
-            
-        tokenized_query = self._tokenize(query)
-        scores = self.bm25.get_scores(tokenized_query)
-        
-        # Sort and select top_k
-        top_indices = np.argsort(scores)[::-1][:top_k]
-        
-        retrieved = []
-        for idx in top_indices:
-            score = scores[idx]
-            if score <= 0: # Avoid returning entirely irrelevant matches
-                continue
-            chunk = self.corpus_chunks[idx]
-            retrieved.append({
-                "id": chunk["id"],
-                "document": chunk["document"],
-                "metadata": chunk["metadata"],
-                "score": float(score)
-            })
-        return retrieved
+        """Delegates lexical retrieval to the BM25Retriever subcomponent."""
+        return self.bm25_retriever.retrieve(query, top_k)
 
     def retrieve(self, query: str, top_k_semantic: int = None, top_k_bm25: int = None, rrf_k: int = None) -> list[dict]:
         """

@@ -12,20 +12,13 @@ class QueryTransformer:
     def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
         self.config_manager = config_manager or ConfigManager()
         
-        # Local defaults
-        local_defaults = {
-            "model_name": "gemini-1.5-flash",
-            "temperature": 0.0
-        }
-        
-        # Merge with global configuration overrides
+        # Fetch configuration directly from global config
         gen_cfg = self.config_manager.get_section("generation")
-        self.config = local_defaults.copy()
         
-        if "primary_model" in gen_cfg:
-            self.config["model_name"] = gen_cfg["primary_model"]
-        if "temperature" in gen_cfg:
-            self.config["temperature"] = gen_cfg["temperature"]
+        self.config = {
+            "model_name": gen_cfg.get("primary_model"),
+            "temperature": gen_cfg.get("temperature")
+        }
             
         if local_overrides:
             self.config.update(local_overrides)

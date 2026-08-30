@@ -29,31 +29,17 @@ class GroundedGenerator:
     def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
         self.config_manager = config_manager or ConfigManager()
         
-        # Local defaults
-        local_defaults = {
-            "primary_model": "gemini-1.5-flash",
-            "fallback_model": "gemini-1.5-pro",
-            "temperature": 0.0,
-            "max_retries": 3,
-            "min_relevance_score": 0.1
-        }
-        
-        # Merge with global overrides
+        # Fetch configuration directly from global config
         gen_cfg = self.config_manager.get_section("generation")
         retrieval_cfg = self.config_manager.get_section("retrieval")
         
-        self.config = local_defaults.copy()
-        
-        if "primary_model" in gen_cfg:
-            self.config["primary_model"] = gen_cfg["primary_model"]
-        if "fallback_model" in gen_cfg:
-            self.config["fallback_model"] = gen_cfg["fallback_model"]
-        if "temperature" in gen_cfg:
-            self.config["temperature"] = gen_cfg["temperature"]
-        if "max_retries" in gen_cfg:
-            self.config["max_retries"] = gen_cfg["max_retries"]
-        if "min_relevance_score" in retrieval_cfg:
-            self.config["min_relevance_score"] = retrieval_cfg["min_relevance_score"]
+        self.config = {
+            "primary_model": gen_cfg.get("primary_model"),
+            "fallback_model": gen_cfg.get("fallback_model"),
+            "temperature": gen_cfg.get("temperature"),
+            "max_retries": gen_cfg.get("max_retries"),
+            "min_relevance_score": retrieval_cfg.get("min_relevance_score")
+        }
             
         if local_overrides:
             self.config.update(local_overrides)

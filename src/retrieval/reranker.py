@@ -9,22 +9,14 @@ class CrossEncoderReranker:
     def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
         self.config_manager = config_manager or ConfigManager()
         
-        # Local defaults
-        local_defaults = {
-            "model_name": "cross-encoder/ms-marco-MiniLM-L-6-v2",
-            "rerank_top_k": 4
-        }
-        
-        # Merge with global overrides
+        # Fetch configuration directly from global config
         rerank_cfg = self.config_manager.get_section("reranker")
         retrieval_cfg = self.config_manager.get_section("retrieval")
         
-        self.config = local_defaults.copy()
-        
-        if "model_name" in rerank_cfg:
-            self.config["model_name"] = rerank_cfg["model_name"]
-        if "rerank_top_k" in retrieval_cfg:
-            self.config["rerank_top_k"] = retrieval_cfg["rerank_top_k"]
+        self.config = {
+            "model_name": rerank_cfg.get("model_name"),
+            "rerank_top_k": retrieval_cfg.get("rerank_top_k")
+        }
             
         if local_overrides:
             self.config.update(local_overrides)
