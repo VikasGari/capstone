@@ -1,0 +1,128 @@
+[
+  {
+    "question": "What is the pre-open session order entry window?",
+    "reference": "The pre-open session order entry, modification, and cancellation period is conducted from 09:00 hours to 09:08 hours.",
+    "expected_context": "Clause 7.1: Order Entry Period\nThe pre-open session order entry, modification, and cancellation period is from 09:00 hours to 09:08 hours.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What happens if a market-wide circuit breaker is triggered at 15% index movement after 14:30 hours?",
+    "reference": "A 15% market-wide circuit breaker trigger at or after 14:30 hours halts trading for the remainder of the day.",
+    "expected_context": "- A 15% trigger at or after 14:30 hours halts trading for the remainder of the day.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the tick size for index futures and options contracts?",
+    "reference": "The minimum price movement (tick size) for index futures and options contracts is set at 0.05 currency units.",
+    "expected_context": "Clause 4.3: Tick Size\nThe minimum price movement (tick size) for index futures and options contracts is set at 0.05 currency units.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the minimum initial margin requirement for Index Futures?",
+    "reference": "The minimum initial margin requirement for Index Futures is 12% of the contract value, which must be present in cash or approved collateral before trade execution.",
+    "expected_context": "The minimum initial margin requirement for Index Futures is 12% of the contract value.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What are the trigger levels for market-wide circuit breakers?",
+    "reference": "Market-wide circuit breakers are triggered by movement in either the Nifty 50 or Sensex index, and are set at three levels: 10%, 15%, and 20% index movement.",
+    "expected_context": "Clause 3.1: Trigger Levels\nMarket-wide circuit breakers are triggered by movement in either the Nifty 50 or Sensex index. The circuit breakers are set at three levels: 10%, 15%, and 20% index movement.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "When does the morning block deal window open and close?",
+    "reference": "The morning block deal window is open from 08:45 hours to 09:00 hours.",
+    "expected_context": "Clause 5.1: Block Deal Window\nBlock deals are executed during a special window. The morning window is open from 08:45 hours to 09:00 hours.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the lot size for Bank Nifty futures?",
+    "reference": "The lot size for Bank Nifty Futures is 15 units.",
+    "expected_context": "The lot size for Bank Nifty Futures is 15 units.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What are the daily snapshots taken for Peak Margin calculation?",
+    "reference": "The clearing corporation takes 4 random snapshots of client positions during trading hours to calculate the Peak Margin.",
+    "expected_context": "Clause 2.1: Intraday Margin Audits\nThe clearing corporation takes 4 random snapshots of client positions during trading hours. The maximum margin requirement among these snapshots is defined as the Peak Margin.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What accumulated MTM loss percentage triggers automatic square-off?",
+    "reference": "The brokerage system automatically initiates square-off of open positions when the accumulated Mark-to-Market (MTM) loss reaches 80% of the client's total ledger margin balance.",
+    "expected_context": "Clause 3.2: Immediate MTM Cutoff\nIf the accumulated MTM loss reaches 80% of the client's total ledger margin balance, the brokerage system automatically initiates square-off of open positions.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the deadline for squaring off intraday MIS positions?",
+    "reference": "Intraday (MIS) positions must be closed by the client before 15:15 hours.",
+    "expected_context": "Clause 5.1: Intraday Auto-Square-Off\nIntraday (MIS) positions must be closed by the client before 15:15 hours.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the penalty fee for positions squared off by the auto-square-off system?",
+    "reference": "A charge of 50 currency units per squared-off order is levied for positions closed by the automated square-off system.",
+    "expected_context": "Clause 5.2: Auto-Square-Off Fee\nA charge of 50 currency units per squared-off order is levied for positions closed by the automated square-off system.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What are the haircut ratios for pledged collaterals like Group I stocks and mutual funds?",
+    "reference": "Pledged collaterals are subject to value haircuts: Group I stocks have a minimum haircut of 15%, liquid mutual funds have a 10% haircut, and equity mutual funds have a 20% haircut.",
+    "expected_context": "Clause 6.2: Haircut Ratios\nPledged collaterals are subject to value haircuts. Group I stocks are subject to a minimum haircut of 15%. Liquid mutual funds are subject to a 10% haircut. Equity mutual funds are subject to a 20% haircut.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the settlement timeline for stock credits under the T+1 settlement cycle?",
+    "reference": "Stock credits are delivered to the client's depository participant (DP) account by 14:00 hours on the T+1 day.",
+    "expected_context": "Clause 1.1: Equity Trades Settlement\nAll equity trades (delivery) are settled on a T+1 basis (Trade day plus one working day). Stock credits are delivered to the client's depository participant (DP) account by 14:00 hours on the T+1 day.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the timeline for processing withdrawal requests placed after 08:30 hours?",
+    "reference": "Fund withdrawal requests placed after 08:30 hours are processed on the next working day.",
+    "expected_context": "Requests placed after 08:30 hours are processed on the next working day.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What income proof documents can be submitted to activate F&O trading?",
+    "reference": "To activate the derivatives (F&O) segment, the client must submit income proof, which can be: a bank statement for the last 6 months showing average balance of 10,000 currency units, a copy of ITR Acknowledgment, or a salary slip for the last 3 months.",
+    "expected_context": "Clause 1.2: Income Proof for F&O Segment\nTo activate the derivatives (F&O) segment, the client must submit income proof, which must be one of:\n- Bank statement for the last 6 months showing average balance of 10,000 currency units.\n- Copy of ITR Acknowledgment.\n- Salary slip for the last 3 months.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "How long must an account be inactive to be classified as dormant?",
+    "reference": "An account is classified as inactive (dormant) if no trade has been executed in the account for a consecutive period of 12 months.",
+    "expected_context": "Clause 2.1: Inactive Classification\nAn account is classified as inactive (dormant) if no trade has been executed in the account for a consecutive period of 12 months.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the brokerage fee for F&O options transactions?",
+    "reference": "Options (both Equity and Index F&O) are charged a flat rate of 20 currency units per executed order.",
+    "expected_context": "- Options (both Equity and Index) are charged a flat rate of 20 currency units per executed order.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the rate of Goods and Services Tax (GST) applied on brokerage and transaction fees?",
+    "reference": "GST is charged at a rate of 18% on the sum of brokerage charges, exchange transaction charges, and SEBI turnover fees.",
+    "expected_context": "Clause 2.2: Goods and Services Tax (GST)\nGST is charged at a rate of 18% on the sum of brokerage charges, exchange transaction charges, and SEBI turnover fees.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the SEBI turnover fee flat rate?",
+    "reference": "SEBI turnover fee is charged at a flat rate of 0.0001% (10 currency units per 10 million) of the total transaction turnover across all trading segments.",
+    "expected_context": "Clause 3.1: SEBI Turnover Fee\nSEBI turnover fee is charged at a flat rate of 0.0001% (10 currency units per 10 million) of the total transaction turnover across all trading segments.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What are the rules for writing naked options in an F&O account?",
+    "reference": "Writing naked options is permitted only if the client's account net equity exceeds 50,000 currency units, and the client must maintain full SPAN + Exposure margin.",
+    "expected_context": "Clause 8.1: Naked Option Writing\nOption writers (sellers) must maintain full SPAN + Exposure margin. Writing naked options is permitted only if the client's account net equity exceeds 50,000 currency units.",
+    "ac_id": "AC-02"
+  },
+  {
+    "question": "What is the weather like in New York today?",
+    "reference": "I apologize, but I cannot find information in the available trading policies to answer your query. Please refer to the official exchange site or contact support.",
+    "expected_context": "",
+    "ac_id": "AC-05"
+  }
+]

@@ -92,6 +92,12 @@ def main():
     )
     
     parser.add_argument(
+        "--eval",
+        action="store_true",
+        help="Run RAGAS evaluation and LLM performance comparison on the golden dataset."
+    )
+    
+    parser.add_argument(
         "--all",
         action="store_true",
         help="Executes ingestion first, then launches the FastAPI backend server."
@@ -116,6 +122,13 @@ def main():
         
     if args.query:
         run_local_query(args.query)
+        
+    if args.eval:
+        print("Running pipeline evaluation comparison...")
+        from src.evaluation.harness import RagasEvaluator
+        evaluator = RagasEvaluator(config_manager=ConfigManager())
+        evaluator.run_comparison()
+        print("Evaluation comparison run completed. Reports committed to docs/ folder.")
 
 if __name__ == "__main__":
     main()
