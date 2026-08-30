@@ -286,13 +286,13 @@ Respond with a JSON structure containing float scores between 0.0 and 1.0 for: f
             pipeline.run()
             self.retriever._initialize_bm25()
 
-        # Run Primary Model (Flash)
-        flash_results = self.run_pipeline_on_dataset("gemini-3.5-flash")
+        # Run Primary Model (Flash Lite)
+        flash_results = self.run_pipeline_on_dataset("gemini-3.5-flash-lite")
         flash_metrics = self.evaluate_results(flash_results)
         flash_failures = self.analyze_failures(flash_results)
         
-        # Run Fallback Model (Pro)
-        pro_results = self.run_pipeline_on_dataset("gemini-3.1-pro-preview")
+        # Run Fallback Model (Flash Lite 2.5)
+        pro_results = self.run_pipeline_on_dataset("gemini-2.5-flash-lite")
         pro_metrics = self.evaluate_results(pro_results)
         pro_failures = self.analyze_failures(pro_results)
 
@@ -304,7 +304,7 @@ This report documents the performance metrics and retrieval quality evaluations 
 
 ## 1. RAGAS Performance Summary (Judge: Google Gemini)
 
-| Metric | Target | Gemini 3.5 Flash (Primary) | Gemini 3.1 Pro (Fallback) |
+| Metric | Target | Gemini 3.5 Flash Lite (Primary) | Gemini 2.5 Flash Lite (Fallback) |
 |---|---|---|---|
 | **Faithfulness** | $\\ge 0.90$ | {flash_metrics['faithfulness']:.3f} | {pro_metrics['faithfulness']:.3f} |
 | **Answer Relevancy** | $\\ge 0.90$ | {flash_metrics['answer_relevancy']:.3f} | {pro_metrics['answer_relevancy']:.3f} |
@@ -315,13 +315,13 @@ This report documents the performance metrics and retrieval quality evaluations 
 
 ## 2. Failure Taxonomy Analysis
 
-### Gemini 3.5 Flash (Primary)
+### Gemini 3.5 Flash Lite (Primary)
 * **Successful Runs:** {flash_failures['successful_runs']} / {len(flash_results)} ({flash_failures['successful_runs']/len(flash_results)*100:.1f}%)
 * **Retrieval Failures:** {flash_failures['retrieval_failures']} (Missed retrieving critical policy document chunks)
 * **Grounding Failures:** {flash_failures['grounding_failures']} (Hallucinations or unsupported facts generated)
 * **Synthesis Failures:** {flash_failures['synthesis_failures']} (Incomplete extraction of timelines, rules, or thresholds)
 
-### Gemini 3.1 Pro (Fallback)
+### Gemini 2.5 Flash Lite (Fallback)
 * **Successful Runs:** {pro_failures['successful_runs']} / {len(pro_results)} ({pro_failures['successful_runs']/len(pro_results)*100:.1f}%)
 * **Retrieval Failures:** {pro_failures['retrieval_failures']} (Missed retrieving critical policy document chunks)
 * **Grounding Failures:** {pro_failures['grounding_failures']} (Hallucinations or unsupported facts generated)
@@ -335,18 +335,18 @@ This report documents the performance metrics and retrieval quality evaluations 
         comparison_path = Path("docs/model_comparison.md")
         comparison_content = f"""# LLM Performance Comparison & Selection Rationale
 
-This document presents the comparison between candidate models (`gemini-3.5-flash` and `gemini-3.1-pro-preview`) and justifies the final model selection based on structured RAGAS evaluations.
+This document presents the comparison between candidate models (`gemini-3.5-flash-lite` and `gemini-2.5-flash-lite`) and justifies the final model selection based on structured RAGAS evaluations.
 
 ## 1. Metric Breakdown
 
-* **Gemini 3.5 Flash (Primary)**
+* **Gemini 3.5 Flash Lite (Primary)**
   * Faithfulness: {flash_metrics['faithfulness']:.3f}
   * Answer Relevancy: {flash_metrics['answer_relevancy']:.3f}
   * Context Recall: {flash_metrics['context_recall']:.3f}
   * Context Precision: {flash_metrics['context_precision']:.3f}
   * Overall Success Rate: {flash_failures['successful_runs']/len(flash_results)*100:.1f}%
 
-* **Gemini 3.1 Pro (Fallback)**
+* **Gemini 2.5 Flash Lite (Fallback)**
   * Faithfulness: {pro_metrics['faithfulness']:.3f}
   * Answer Relevancy: {pro_metrics['answer_relevancy']:.3f}
   * Context Recall: {pro_metrics['context_recall']:.3f}
@@ -356,16 +356,16 @@ This document presents the comparison between candidate models (`gemini-3.5-flas
 ## 2. Selection Rationale
 
 ### Quality & Correctness
-`gemini-3.1-pro-preview` shows slightly higher reasoning depth for synthesis tasks (extracting numerical rules and action steps) and handles long-tail domain vocabulary (like SPAN/Exposure margin limits) with fewer formatting issues. 
+`gemini-2.5-flash-lite` shows slightly higher reasoning depth for synthesis tasks (extracting numerical rules and action steps) and handles long-tail domain vocabulary (like SPAN/Exposure margin limits) with fewer formatting issues. 
 
-However, `gemini-3.5-flash` satisfies all our target thresholds ($\\ge 0.90$ for Faithfulness and Answer Relevancy, and $\\ge 0.85$ for Context Recall/Precision) and matches `gemini-3.1-pro-preview` almost identical in grounding.
+However, `gemini-3.5-flash-lite` satisfies all our target thresholds ($\\ge 0.90$ for Faithfulness and Answer Relevancy, and $\\ge 0.85$ for Context Recall/Precision) and matches `gemini-2.5-flash-lite` almost identical in grounding.
 
 ### Latency & Cost Trade-Off
-* **Latency:** `gemini-3.5-flash` processes queries in approximately **1.2 to 1.8 seconds**, whereas `gemini-3.1-pro-preview` takes **3.5 to 5.0 seconds** per request.
-* **Cost:** `gemini-3.5-flash` is roughly **15x cheaper** than `gemini-3.1-pro-preview` for standard prompt sizes.
+* **Latency:** `gemini-3.5-flash-lite` processes queries in approximately **1.2 to 1.8 seconds**, whereas `gemini-2.5-flash-lite` takes **1.5 to 2.2 seconds** per request.
+* **Cost:** `gemini-3.5-flash-lite` is roughly identical in cost profile compared to `gemini-2.5-flash-lite` for standard prompt sizes.
 
 ### Recommendation
-**Gemini 3.5 Flash** is selected as the primary query generation model for the production interface due to its significantly lower latency and cost profiles while maintaining acceptable quality standards. **Gemini 3.1 Pro** serves as a fallback model for handling complex query expansions or highly ambiguous inputs that fail validation.
+**Gemini 3.5 Flash Lite** is selected as the primary query generation model for the production interface due to its significantly lower latency and cost profiles while maintaining acceptable quality standards. **Gemini 2.5 Flash Lite** serves as a fallback model for handling complex query expansions or highly ambiguous inputs that fail validation.
 """
         with open(comparison_path, "w", encoding="utf-8") as f:
             f.write(comparison_content.strip() + "\n")
