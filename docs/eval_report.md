@@ -4,10 +4,10 @@ This report documents the performance metrics and retrieval quality evaluations 
 
 ## 1. RAGAS Performance Summary (Judge: Google Gemini)
 
-| Metric | Target | Gemini 3.5 Flash (Primary) | Gemini 3.1 Pro (Fallback) |
+| Metric | Target | Gemini 3.5 Flash (Primary) | Gemini 2.5 Pro (Fallback) |
 |---|---|---|---|
-| **Faithfulness** | $\ge 0.90$ | 0.025 | 0.027 |
-| **Answer Relevancy** | $\ge 0.90$ | 0.234 | 0.257 |
+| **Faithfulness** | $\ge 0.90$ | 0.094 | 0.018 |
+| **Answer Relevancy** | $\ge 0.90$ | 0.210 | 0.170 |
 | **Context Recall** | $\ge 0.85$ | 0.179 | 0.179 |
 | **Context Precision** | $\ge 0.85$ | 1.000 | 1.000 |
 
@@ -16,13 +16,13 @@ This report documents the performance metrics and retrieval quality evaluations 
 ## 2. Failure Taxonomy Analysis
 
 ### Gemini 3.5 Flash (Primary)
-* **Successful Runs:** 14 / 21 (66.7%)
-* **Retrieval Failures:** 1 (Missed retrieving critical policy document chunks)
+* **Successful Runs:** 10 / 21 (47.6%)
+* **Retrieval Failures:** 11 (Missed retrieving critical policy document chunks)
 * **Grounding Failures:** 0 (Hallucinations or unsupported facts generated)
-* **Synthesis Failures:** 6 (Incomplete extraction of timelines, rules, or thresholds)
+* **Synthesis Failures:** 0 (Incomplete extraction of timelines, rules, or thresholds)
 
-### Gemini 3.1 Pro (Fallback)
-* **Successful Runs:** 15 / 21 (71.4%)
-* **Retrieval Failures:** 0 (Missed retrieving critical policy document chunks)
+### Gemini 2.5 Pro (Fallback)
+* **Successful Runs:** 1 / 21 (4.8%)
+* **Retrieval Failures:** 20 (Missed retrieving critical policy document chunks)
 * **Grounding Failures:** 0 (Hallucinations or unsupported facts generated)
-* **Synthesis Failures:** 6 (Incomplete extraction of timelines, rules, or thresholds)
+* **Synthesis Failures:** 0 (Incomplete extraction of timelines, rules, or thresholds)

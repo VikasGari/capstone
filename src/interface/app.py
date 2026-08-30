@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+
 import streamlit as st
 import requests
 from config.config_manager import ConfigManager
@@ -64,7 +68,7 @@ st.markdown("""
         font-weight: 500;
     }
 </style>
-""", unsafe_allowed_code_html=True)
+""", unsafe_allow_html=True)
 
 # Sidebar - Diagnostics and Control
 with st.sidebar:
@@ -101,8 +105,8 @@ with st.sidebar:
                 st.error(f"Error connecting to backend: {e}")
 
 # Main Layout
-st.markdown('<div class="main-title">Brokerage Rules & Trading Policy Assistant</div>', unsafe_allowed_code_html=True)
-st.markdown('<div class="subtitle">Grounded Question-Answering for Support and Operations Staff with Clause-Level Citations</div>', unsafe_allowed_code_html=True)
+st.markdown('<div class="main-title">Brokerage Rules & Trading Policy Assistant</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Grounded Question-Answering for Support and Operations Staff with Clause-Level Citations</div>', unsafe_allow_html=True)
 
 # Main Query Section
 query_input = st.text_input(
@@ -142,7 +146,7 @@ if query_input:
                                     "... {cit['snippet']} ..."
                                 </p>
                             </div>
-                            """, unsafe_allowed_code_html=True)
+                            """, unsafe_allow_html=True)
                             
                 with col_right:
                     # Grounding Metrics Card
@@ -198,4 +202,4 @@ st.markdown("""
 <div class="disclaimer-box">
     <b>Legal Disclaimer:</b> This assistant retrieves rules, margins, and timeline procedures strictly from synthetic mock policies and exchange rulebooks. Generated contents are for educational and informational purposes only, and do not constitute financial, investment, transaction execution, or legal advice.
 </div>
-""", unsafe_allowed_code_html=True)
+""", unsafe_allow_html=True)
