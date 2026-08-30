@@ -37,19 +37,13 @@ class ConfigManager:
             print(f"Error loading global config: {e}. Using empty defaults.")
             return {}
 
-    def get_section(self, section_name: str, local_defaults: dict = None) -> dict:
+    def get_section(self, section_name: str) -> dict:
         """
         Retrieves a configuration section from the global YAML configuration.
-        Optionally merges local defaults, and overrides with environment variables.
+        Keys can be overridden by environment variables (e.g. EMBEDDING_MODEL_NAME).
         """
         global_section = self.global_config.get(section_name, {})
-        merged_config = {}
-        if local_defaults:
-            merged_config.update(local_defaults)
-            
-        if isinstance(global_section, dict):
-            for key, val in global_section.items():
-                merged_config[key] = val
+        merged_config = dict(global_section) if isinstance(global_section, dict) else {}
         
         # Override specific keys with environment variables if available
         # e.g., GEMINI_API_KEY
