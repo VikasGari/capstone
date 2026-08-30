@@ -98,12 +98,18 @@ def check_health():
     """
     return HealthResponse(status="healthy")
 
+import gradio as gr
+from src.interface.app import demo
+
+# Mount Gradio frontend UI directly onto the FastAPI application at root path
+app = gr.mount_gradio_app(app, demo, path="/")
+
 def start_server():
-    """Starts the FastAPI backend server."""
+    """Starts the unified FastAPI + Gradio server."""
     api_cfg = config_manager.get_section("api")
     host = api_cfg.get("host", "127.0.0.1")
     port = int(api_cfg.get("port", 8000))
-    print(f"Launching FastAPI Server on {host}:{port}...")
+    print(f"Launching Unified FastAPI + Gradio Server on http://{host}:{port} ...")
     uvicorn.run(app, host=host, port=port)
 
 if __name__ == "__main__":
