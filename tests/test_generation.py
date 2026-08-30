@@ -1,4 +1,4 @@
-from src.generation.generator import GroundedGenerator, GroundedAnswer
+from src.generation import GroundedGenerator, GroundedAnswer
 
 def test_pydantic_schema_structure():
     # Verify we can initialize and instantiate GroundedAnswer

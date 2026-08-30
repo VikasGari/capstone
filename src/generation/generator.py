@@ -1,24 +1,10 @@
 import json
 import time
-from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 from config.config_manager import ConfigManager
-
-class Citation(BaseModel):
-    source: str = Field(description="The source filename or document ID of the cited rule/policy.")
-    clause_id: str = Field(description="The specific clause or section ID, e.g., Clause 1.1 or Section 2.3.")
-    clause_title: str = Field(description="The title of the clause/section.")
-    snippet: str = Field(description="The exact short quote from the context that justifies this statement.")
-
-class GroundedAnswer(BaseModel):
-    answer: str = Field(description="The natural language answer to the query, strictly grounded in the provided context. If the context is insufficient, must be the refusal message.")
-    citations: list[Citation] = Field(default=[], description="List of clause-level citations matching the answer statements. Leave empty if context is insufficient.")
-    applicable_rules: list[str] = Field(default=[], description="List of rule/policy clause headings or text summaries that apply.")
-    thresholds_and_timelines: list[str] = Field(default=[], description="List of specific numerical limits, percentages, cutoffs, or settlement timelines mentioned in the answer.")
-    required_actions: list[str] = Field(default=[], description="List of actionable items required by the user or brokerage based on the rule (e.g., 'Submit Re-KYC', 'Deposit funds before 23:59').")
-    grounding_confidence: float = Field(description="Confidence rating of grounding (0.0 to 1.0) based on how well the context covers the query.")
-    is_sufficient: bool = Field(description="True if context has enough info to answer. False if insufficient context and system has abstained.")
+from src.generation.schemas import GroundedAnswer, Citation
+from src.generation.prompts import get_generation_prompt
 
 class GroundedGenerator:
     """
@@ -71,34 +57,7 @@ class GroundedGenerator:
                 is_sufficient=False
             )
             
-        # Format the context block for the model
-        context_str = ""
-        for idx, chunk in enumerate(retrieved_chunks):
-            meta = chunk.get("metadata", {})
-            source = meta.get("source", "Unknown")
-            clause_id = meta.get("clause_id", "General")
-            clause_title = meta.get("clause_title", "General")
-            
-            context_str += f"--- CONTEXT BLOCK {idx+1} ---\n"
-            context_str += f"Source Doc: {source}\n"
-            context_str += f"Clause/Section ID: {clause_id}\n"
-            context_str += f"Clause/Section Title: {clause_title}\n"
-            context_str += f"Content:\n{chunk['document']}\n\n"
-
-        prompt = f"""
-You are an expert Brokerage Rules & Trading Policy Assistant. Your task is to answer the user query based ONLY on the provided Context Blocks.
-
-Domain Guardrails:
-1. Base your answer strictly on the facts present in the Context Blocks. Do not assume, extrapolate, or bring in outside knowledge.
-2. If the Context Blocks do not contain sufficient information to answer the query, set `is_sufficient = false` and set the `answer` field to: "{refusal_msg}"
-3. Do not offer definitive legal, financial, or investment advice. Include a passive notice/disclaimer at the end of the answer that this is informational only.
-4. Each statement in your answer must be supported by a citation mapping back to the specific Context Block. In the `citations` list, include the exact snippet/quote of text that justifies your statements, along with the source file, clause ID, and clause title.
-
-Provided Context Blocks:
-{context_str}
-
-User Query: "{query}"
-"""
+        prompt = get_generation_prompt(query, retrieved_chunks, refusal_msg)
 
         # Decide which model to use
         if model_name is None:
