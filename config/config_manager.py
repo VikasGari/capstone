@@ -6,44 +6,43 @@ from dotenv import load_dotenv
 class ConfigManager:
     """
     Manages configuration for the RAG system.
-    Loads global configurations from global_config.yaml and provides them to components.
-    Ensures that global configuration overrides local default configurations.
+    Loads configurations from config.yaml and provides them to components.
     Also handles environment variables (via python-dotenv).
     """
-    def __init__(self, global_config_path: str = None):
+    def __init__(self, config_path: str = None):
         # Load environment variables from .env
         load_dotenv()
         
-        # Determine the global configuration path
-        if global_config_path is None:
-            # Default location: config/global_config.yaml relative to workspace root
+        # Determine the configuration path
+        if config_path is None:
+            # Default location: config/config.yaml relative to workspace root
             project_root = Path(__file__).resolve().parent.parent
-            global_config_path = project_root / "config" / "global_config.yaml"
+            config_path = project_root / "config" / "config.yaml"
         
-        self.global_config_path = Path(global_config_path)
-        self.global_config = self._load_yaml_config()
+        self.config_path = Path(config_path)
+        self.config = self._load_yaml_config()
 
     def _load_yaml_config(self) -> dict:
-        """Loads the YAML global config file."""
-        if not self.global_config_path.exists():
-            print(f"Warning: Global configuration file not found at {self.global_config_path}. Using empty defaults.")
+        """Loads the YAML config file."""
+        if not self.config_path.exists():
+            print(f"Warning: Configuration file not found at {self.config_path}. Using empty defaults.")
             return {}
         
         try:
-            with open(self.global_config_path, "r", encoding="utf-8") as f:
-                config = yaml.safe_load(f)
-                return config if config else {}
+            with open(self.config_path, "r", encoding="utf-8") as f:
+                config_data = yaml.safe_load(f)
+                return config_data if config_data else {}
         except Exception as e:
-            print(f"Error loading global config: {e}. Using empty defaults.")
+            print(f"Error loading config: {e}. Using empty defaults.")
             return {}
 
     def get_section(self, section_name: str) -> dict:
         """
-        Retrieves a configuration section from the global YAML configuration.
+        Retrieves a configuration section from the YAML configuration.
         Keys can be overridden by environment variables (e.g. EMBEDDING_MODEL_NAME).
         """
-        global_section = self.global_config.get(section_name, {})
-        merged_config = dict(global_section) if isinstance(global_section, dict) else {}
+        section = self.config.get(section_name, {})
+        merged_config = dict(section) if isinstance(section, dict) else {}
         
         # Override specific keys with environment variables if available
         # e.g., GEMINI_API_KEY

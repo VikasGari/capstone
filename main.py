@@ -82,7 +82,7 @@ def main():
     parser.add_argument(
         "--api",
         action="store_true",
-        help="Start the FastAPI backend server on host and port configured in global_config.yaml."
+        help="Start the FastAPI backend server on host and port configured in config.yaml."
     )
     
     parser.add_argument(

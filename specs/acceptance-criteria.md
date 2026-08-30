@@ -28,7 +28,7 @@ This specification maps the Functional Acceptance Criteria (AC) and Non-Function
 | **NFR-01** | No secrets or API keys committed; configuration via environment variables with a committed `.env.example`. | Checked by scanning project for `.env` and hardcoded API keys. Template committed as `.env.example`. |
 | **NFR-02** | Pipeline and evaluation run end-to-end from a single documented command with committed sample data and a README quick-start. | Run via `python main.py --all` or individually documented commands in `README.md`. |
 | **NFR-03** | All data is synthetic; any PII is synthetic, masked where shown, and never written to logs in plaintext. | Handled via custom generation scripts and masked logging. |
-| **NFR-04** | Retrieval parameters (chunk size / overlap, top-K, thresholds, reranker settings) are externalized in config, not hard-coded inline. | Loaded from `config/global_config.yaml` and processed via `ConfigManager`. |
+| **NFR-04** | Retrieval parameters (chunk size / overlap, top-K, thresholds, reranker settings) are externalized in config, not hard-coded inline. | Loaded from `config/config.yaml` and processed via `ConfigManager`. |
 | **NFR-05** | Provider / model calls implement basic retries and fail gracefully — a clear error or safe fallback response on repeated failure — rather than crashing. | Wrapped with tenacity retries or custom exception handlers in `GroundedGenerator`. |
 | **NFR-06** | Every quality claim is reproducible — the eval script and dataset are committed so metrics can be re-derived. | Python scripts under `src/evaluation/` execute evaluation locally on committed `data/golden_set.json`. |
 | **NFR-07** | Cost and latency are addressed at concept level only. | Briefly documented in `docs/walkthrough.md`. |
