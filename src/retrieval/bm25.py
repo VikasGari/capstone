@@ -2,28 +2,16 @@ import re
 import numpy as np
 import chromadb
 from rank_bm25 import BM25Okapi
-from config.config_manager import ConfigManager
 
 class BM25Retriever:
     """
     Encapsulates lexical search utilizing the BM25Okapi ranking model.
+    Decoupled from ConfigManager: accepts parameters directly in constructor.
     """
-    def __init__(self, config_manager: ConfigManager, client: chromadb.PersistentClient, config: dict = None):
-        self.config_manager = config_manager
+    def __init__(self, client: chromadb.PersistentClient, collection_name: str, top_k_bm25: int):
         self.client = client
-        
-        if config is None:
-            # Load configuration sections from global config
-            retrieval_cfg = self.config_manager.get_section("retrieval")
-            vstore_cfg = self.config_manager.get_section("vector_store")
-            self.config = {
-                "top_k_bm25": retrieval_cfg.get("top_k_bm25"),
-                "collection_name": vstore_cfg.get("collection_name")
-            }
-        else:
-            self.config = config
-            
-        self.collection_name = self.config["collection_name"]
+        self.collection_name = collection_name
+        self.top_k_bm25 = int(top_k_bm25)
         self.bm25 = None
         self.corpus_chunks = []
 
@@ -71,7 +59,7 @@ class BM25Retriever:
             return []
             
         if top_k is None:
-            top_k = int(self.config["top_k_bm25"])
+            top_k = self.top_k_bm25
             
         tokenized_query = self._tokenize(query)
         scores = self.bm25.get_scores(tokenized_query)

@@ -12,16 +12,12 @@ class QueryTransformer:
     def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
         self.config_manager = config_manager or ConfigManager()
         
-        # Fetch configuration directly from global config
+        # Load configuration section directly from global config
         gen_cfg = self.config_manager.get_section("generation")
         
-        self.config = {
-            "model_name": gen_cfg.get("primary_model"),
-            "temperature": gen_cfg.get("temperature")
-        }
-            
-        if local_overrides:
-            self.config.update(local_overrides)
+        # Extract configurations directly into distinct properties (no self.config dict lookup)
+        self.model_name = local_overrides.get("model_name") if local_overrides and "model_name" in local_overrides else gen_cfg.get("primary_model")
+        self.temperature = local_overrides.get("temperature") if local_overrides and "temperature" in local_overrides else gen_cfg.get("temperature")
             
         # Initialize Google GenAI client if API key is present
         self.api_key = self.config_manager.get_env_var("GEMINI_API_KEY")
@@ -57,10 +53,10 @@ Example Output:
         try:
             # Generate content using structured JSON mode
             response = self.client.models.generate_content(
-                model=self.config["model_name"],
+                model=self.model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    temperature=float(self.config["temperature"]),
+                    temperature=float(self.temperature),
                     response_mime_type="application/json"
                 )
             )

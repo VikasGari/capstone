@@ -29,22 +29,18 @@ class GroundedGenerator:
     def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
         self.config_manager = config_manager or ConfigManager()
         
-        # Fetch configuration directly from global config
+        # Load configuration sections from global config
         gen_cfg = self.config_manager.get_section("generation")
         retrieval_cfg = self.config_manager.get_section("retrieval")
         
-        self.config = {
-            "primary_model": gen_cfg.get("primary_model"),
-            "fallback_model": gen_cfg.get("fallback_model"),
-            "temperature": gen_cfg.get("temperature"),
-            "max_retries": gen_cfg.get("max_retries"),
-            "min_relevance_score": retrieval_cfg.get("min_relevance_score")
-        }
-            
-        if local_overrides:
-            self.config.update(local_overrides)
-            
-        # Initialize Google GenAI client
+        # Extract configurations directly into distinct properties (no self.config dict lookup)
+        self.primary_model = local_overrides.get("primary_model") if local_overrides and "primary_model" in local_overrides else gen_cfg.get("primary_model")
+        self.fallback_model = local_overrides.get("fallback_model") if local_overrides and "fallback_model" in local_overrides else gen_cfg.get("fallback_model")
+        self.temperature = local_overrides.get("temperature") if local_overrides and "temperature" in local_overrides else gen_cfg.get("temperature")
+        self.max_retries = local_overrides.get("max_retries") if local_overrides and "max_retries" in local_overrides else gen_cfg.get("max_retries")
+        self.min_relevance_score = local_overrides.get("min_relevance_score") if local_overrides and "min_relevance_score" in local_overrides else retrieval_cfg.get("min_relevance_score")
+        
+        # Initialize Google GenAI client if API key is present
         self.api_key = self.config_manager.get_env_var("GEMINI_API_KEY")
         self.client = None
         if self.api_key:
@@ -53,11 +49,11 @@ class GroundedGenerator:
             except Exception as e:
                 print(f"Warning: Failed to initialize Google GenAI Client in GroundedGenerator: {e}")
         else:
-            print("Warning: GEMINI_API_KEY not found in environment. Generator will run in offline fallback mode.")
+            print("Warning: GEMINI_API_KEY not found in environment. GroundedGenerator will fail safely on all generation calls.")
 
     def generate(self, query: str, retrieved_chunks: list[dict], model_name: str = None) -> GroundedAnswer:
         """
-        Generates structured grounded response from query and retrieved context.
+        Generates structured grounded answers, citations, and rules.
         Fails safely on network errors or API exhaustion.
         """
         # Refusal fallback message
@@ -106,10 +102,10 @@ User Query: "{query}"
 
         # Decide which model to use
         if model_name is None:
-            model_name = self.config["primary_model"]
+            model_name = self.primary_model
             
-        max_retries = int(self.config["max_retries"])
-        temperature = float(self.config["temperature"])
+        max_retries = int(self.max_retries)
+        temperature = float(self.temperature)
         
         # Safe offline fallback if no client exists
         if not self.client:
@@ -137,7 +133,6 @@ User Query: "{query}"
                     )
                 )
                 
-                # Parse output
                 text = response.text.strip()
                 ans_dict = json.loads(text)
                 
@@ -159,8 +154,8 @@ User Query: "{query}"
         # Graceful Fallback on Repeated Failures
         print(f"All {max_retries} attempts failed. Falling back to safe response.")
         
-        # If primary failed, we try a single attempt with fallback model (e.g., gemini-1.5-pro)
-        fallback_model = self.config["fallback_model"]
+        # If primary failed, we try a single attempt with fallback model
+        fallback_model = self.fallback_model
         if model_name != fallback_model:
             try:
                 print(f"Attempting fallback model: {fallback_model}")

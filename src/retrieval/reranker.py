@@ -9,26 +9,21 @@ class CrossEncoderReranker:
     def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
         self.config_manager = config_manager or ConfigManager()
         
-        # Fetch configuration directly from global config
+        # Load configuration sections from global config
         rerank_cfg = self.config_manager.get_section("reranker")
         retrieval_cfg = self.config_manager.get_section("retrieval")
         
-        self.config = {
-            "model_name": rerank_cfg.get("model_name"),
-            "rerank_top_k": retrieval_cfg.get("rerank_top_k")
-        }
-            
-        if local_overrides:
-            self.config.update(local_overrides)
+        # Extract configurations directly into distinct properties (no self.config dict lookup)
+        self.model_name = local_overrides.get("model_name") if local_overrides and "model_name" in local_overrides else rerank_cfg.get("model_name")
+        self.rerank_top_k = local_overrides.get("rerank_top_k") if local_overrides and "rerank_top_k" in local_overrides else retrieval_cfg.get("rerank_top_k")
             
         # Initialize CrossEncoder model lazily
         self.model = None
 
     def _lazy_init(self):
         if self.model is None:
-            model_name = self.config["model_name"]
-            print(f"Loading CrossEncoder reranker model: {model_name}...")
-            self.model = CrossEncoder(model_name)
+            print(f"Loading CrossEncoder reranker model: {self.model_name}...")
+            self.model = CrossEncoder(self.model_name)
 
     def rerank(self, query: str, candidates: list[dict], top_k: int = None) -> list[dict]:
         """
@@ -41,7 +36,7 @@ class CrossEncoderReranker:
         self._lazy_init()
         
         if top_k is None:
-            top_k = int(self.config["rerank_top_k"])
+            top_k = int(self.rerank_top_k)
             
         # Format inputs for Cross-Encoder: list of (query, document) pairs
         pairs = [(query, c["document"]) for c in candidates]

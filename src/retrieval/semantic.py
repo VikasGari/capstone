@@ -1,31 +1,19 @@
 import chromadb
-from config.config_manager import ConfigManager
 
 class SemanticRetriever:
     """
     Encapsulates dense vector semantic search against the Chroma collection.
+    Decoupled from ConfigManager: accepts parameters directly in constructor.
     """
-    def __init__(self, config_manager: ConfigManager, client: chromadb.PersistentClient, config: dict = None):
-        self.config_manager = config_manager
+    def __init__(self, client: chromadb.PersistentClient, collection_name: str, top_k_semantic: int):
         self.client = client
-        
-        if config is None:
-            # Load configuration sections from global config
-            retrieval_cfg = self.config_manager.get_section("retrieval")
-            vstore_cfg = self.config_manager.get_section("vector_store")
-            self.config = {
-                "top_k_semantic": retrieval_cfg.get("top_k_semantic"),
-                "collection_name": vstore_cfg.get("collection_name")
-            }
-        else:
-            self.config = config
-            
-        self.collection_name = self.config["collection_name"]
+        self.collection_name = collection_name
+        self.top_k_semantic = int(top_k_semantic)
 
     def retrieve(self, query: str, top_k: int = None) -> list[dict]:
         """Queries the Chroma collection using semantic search."""
         if top_k is None:
-            top_k = int(self.config["top_k_semantic"])
+            top_k = self.top_k_semantic
             
         try:
             collection = self.client.get_collection(self.collection_name)

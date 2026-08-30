@@ -15,23 +15,19 @@ class HybridRetriever:
         vstore_cfg = self.config_manager.get_section("vector_store")
         retrieval_cfg = self.config_manager.get_section("retrieval")
         
-        self.config = {
-            "persist_directory": vstore_cfg.get("persist_directory"),
-            "collection_name": vstore_cfg.get("collection_name"),
-            "top_k_semantic": retrieval_cfg.get("top_k_semantic"),
-            "top_k_bm25": retrieval_cfg.get("top_k_bm25"),
-            "rrf_k": retrieval_cfg.get("rrf_k")
-        }
+        # Extract configurations directly into distinct properties (no self.config dict lookup)
+        self.persist_directory = local_overrides.get("persist_directory") if local_overrides and "persist_directory" in local_overrides else vstore_cfg.get("persist_directory")
+        self.collection_name = local_overrides.get("collection_name") if local_overrides and "collection_name" in local_overrides else vstore_cfg.get("collection_name")
+        self.top_k_semantic = local_overrides.get("top_k_semantic") if local_overrides and "top_k_semantic" in local_overrides else retrieval_cfg.get("top_k_semantic")
+        self.top_k_bm25 = local_overrides.get("top_k_bm25") if local_overrides and "top_k_bm25" in local_overrides else retrieval_cfg.get("top_k_bm25")
+        self.rrf_k = local_overrides.get("rrf_k") if local_overrides and "rrf_k" in local_overrides else retrieval_cfg.get("rrf_k")
         
-        if local_overrides:
-            self.config.update(local_overrides)
-            
         # Initialize the persistent client
-        self.client = chromadb.PersistentClient(path=self.config["persist_directory"])
+        self.client = chromadb.PersistentClient(path=self.persist_directory)
         
-        # Instantiate subcomponents, passing the resolved config containing any overrides
-        self.bm25_retriever = BM25Retriever(self.config_manager, self.client, self.config)
-        self.semantic_retriever = SemanticRetriever(self.config_manager, self.client, self.config)
+        # Instantiate subcomponents with clean direct parameter passing
+        self.bm25_retriever = BM25Retriever(self.client, self.collection_name, self.top_k_bm25)
+        self.semantic_retriever = SemanticRetriever(self.client, self.collection_name, self.top_k_semantic)
 
     # Expose helper to fit index (used in API and evaluation harness)
     def _initialize_bm25(self):
@@ -70,7 +66,7 @@ class HybridRetriever:
         bm25_results = self.retrieve_bm25(query, top_k_bm25)
         
         if rrf_k is None:
-            rrf_k = int(self.config["rrf_k"])
+            rrf_k = self.rrf_k
             
         # RRF formula: Score(d) = sum(1 / (rrf_k + rank_r(d)))
         rrf_scores = {}

@@ -21,17 +21,13 @@ class IngestionPipeline:
         chunking_cfg = self.config_manager.get_section("chunking")
         paths_cfg = self.config_manager.get_section("paths")
         
-        self.config = {
-            "model_name": embedding_cfg.get("model_name"),
-            "persist_directory": vstore_cfg.get("persist_directory"),
-            "collection_name": vstore_cfg.get("collection_name"),
-            "chunk_size": chunking_cfg.get("chunk_size"),
-            "chunk_overlap": chunking_cfg.get("chunk_overlap"),
-            "corpus_directory": paths_cfg.get("corpus_directory")
-        }
-        
-        if local_overrides:
-            self.config.update(local_overrides)
+        # Extract configurations directly into distinct properties (no self.config dict lookup)
+        self.model_name = local_overrides.get("model_name") if local_overrides and "model_name" in local_overrides else embedding_cfg.get("model_name")
+        self.persist_directory = local_overrides.get("persist_directory") if local_overrides and "persist_directory" in local_overrides else vstore_cfg.get("persist_directory")
+        self.collection_name = local_overrides.get("collection_name") if local_overrides and "collection_name" in local_overrides else vstore_cfg.get("collection_name")
+        self.chunk_size = local_overrides.get("chunk_size") if local_overrides and "chunk_size" in local_overrides else chunking_cfg.get("chunk_size")
+        self.chunk_overlap = local_overrides.get("chunk_overlap") if local_overrides and "chunk_overlap" in local_overrides else chunking_cfg.get("chunk_overlap")
+        self.corpus_directory = local_overrides.get("corpus_directory") if local_overrides and "corpus_directory" in local_overrides else paths_cfg.get("corpus_directory")
 
     def parse_file(self, file_path: Path) -> list[dict]:
         """
@@ -119,7 +115,7 @@ class IngestionPipeline:
         Idempotent: Clears any existing collection data.
         """
         if corpus_dir is None:
-            corpus_dir = self.config["corpus_directory"]
+            corpus_dir = self.corpus_directory
             
         corpus_path = Path(corpus_dir)
         if not corpus_path.exists():
@@ -138,8 +134,8 @@ class IngestionPipeline:
             
         # Recursive splitter to split clause texts if they exceed chunk_size
         splitter = RecursiveCharacterTextSplitter(
-            chunk_size=int(self.config["chunk_size"]),
-            chunk_overlap=int(self.config["chunk_overlap"])
+            chunk_size=int(self.chunk_size),
+            chunk_overlap=int(self.chunk_overlap)
         )
         
         final_documents = []
@@ -162,11 +158,11 @@ class IngestionPipeline:
                 final_ids.append(f"{seg['doc_id']}_{seg['clause_id']}_{sub_idx}")
                 
         # Initialize persistent Chroma client
-        persist_dir = self.config["persist_directory"]
+        persist_dir = self.persist_directory
         client = chromadb.PersistentClient(path=persist_dir)
         
         # Load local embedding model
-        model_name = self.config["model_name"]
+        model_name = self.model_name
         print(f"Loading embedding model: {model_name}...")
         embedding_model = SentenceTransformer(model_name)
         
@@ -180,7 +176,7 @@ class IngestionPipeline:
         embed_fn = LocalEmbedder(embedding_model)
         
         # Recreate collection to ensure idempotence
-        collection_name = self.config["collection_name"]
+        collection_name = self.collection_name
         try:
             client.delete_collection(collection_name)
             print(f"Cleared existing collection '{collection_name}' for clean re-ingestion.")
