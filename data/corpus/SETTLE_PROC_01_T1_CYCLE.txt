@@ -1,0 +1,9 @@
+DOCUMENT ID: SETTLE_PROC_01_T1_CYCLE
+DOCUMENT TITLE: T+1 Settlement Cycle
+CATEGORY: Settlement and Payout Procedures
+========================================
+Clause 1.1: Equity Trades Settlement
+All equity trades (delivery) are settled on a T+1 basis (Trade day plus one working day). Stock credits are delivered to the client's depository participant (DP) account by 14:00 hours on the T+1 day.
+
+Clause 1.2: F&O Settlement
+All derivative contract trades are settled on a daily mark-to-market basis on T+1. Realized profits are credited, and realized losses are debited, before 08:30 hours on the next working day.

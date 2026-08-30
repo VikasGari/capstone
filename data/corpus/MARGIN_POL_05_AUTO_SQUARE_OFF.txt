@@ -1,0 +1,9 @@
+DOCUMENT ID: MARGIN_POL_05_AUTO_SQUARE_OFF
+DOCUMENT TITLE: Auto-Square-Off Criteria
+CATEGORY: Margin & F&O Policy
+========================================
+Clause 5.1: Intraday Auto-Square-Off
+Intraday (MIS) positions must be closed by the client before 15:15 hours. If the client fails to close MIS positions, the brokerage auto-square-off system executes market exit orders beginning at 15:16 hours.
+
+Clause 5.2: Auto-Square-Off Fee
+A charge of 50 currency units per squared-off order is levied for positions closed by the automated square-off system.

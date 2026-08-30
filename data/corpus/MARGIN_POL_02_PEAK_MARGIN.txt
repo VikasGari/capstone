@@ -1,0 +1,9 @@
+DOCUMENT ID: MARGIN_POL_02_PEAK_MARGIN
+DOCUMENT TITLE: Peak Margin Requirements
+CATEGORY: Margin & F&O Policy
+========================================
+Clause 2.1: Intraday Margin Audits
+The clearing corporation takes 4 random snapshots of client positions during trading hours. The maximum margin requirement among these snapshots is defined as the Peak Margin.
+
+Clause 2.2: Margin Shortfall Penalties
+If the client's available margin falls below the Peak Margin requirement during any snapshot, a peak margin shortfall penalty is levied, ranging from 0.5% to 5.0% of the shortfall amount depending on the duration and size.

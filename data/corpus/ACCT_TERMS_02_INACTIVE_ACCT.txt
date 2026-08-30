@@ -1,0 +1,9 @@
+DOCUMENT ID: ACCT_TERMS_02_INACTIVE_ACCT
+DOCUMENT TITLE: Inactive Account Policy
+CATEGORY: Account-Opening & Trading Terms
+========================================
+Clause 2.1: Inactive Classification
+An account is classified as inactive (dormant) if no trade has been executed in the account for a consecutive period of 12 months.
+
+Clause 2.2: Reactivation Process
+To reactivate a dormant account, the client must undergo the Re-KYC process, which includes submiting updated identity/address proofs and performing an In-Person Verification (IPV) via webcam.

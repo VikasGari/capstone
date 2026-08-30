@@ -1,0 +1,12 @@
+DOCUMENT ID: ACCT_TERMS_01_KYC_REQ
+DOCUMENT TITLE: KYC Documentation Requirements
+CATEGORY: Account-Opening & Trading Terms
+========================================
+Clause 1.1: Mandatory KYC Documents
+To open a trading account, the applicant must submit a valid Proof of Identity (PAN Card) and Proof of Address (Aadhaar Card, Passport, or Voter ID).
+
+Clause 1.2: Income Proof for F&O Segment
+To activate the derivatives (F&O) segment, the client must submit income proof, which must be one of:
+- Bank statement for the last 6 months showing average balance of 10,000 currency units.
+- Copy of ITR Acknowledgment.
+- Salary slip for the last 3 months.

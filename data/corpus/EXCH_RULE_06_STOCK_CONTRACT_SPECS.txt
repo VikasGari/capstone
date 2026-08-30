@@ -1,0 +1,9 @@
+DOCUMENT ID: EXCH_RULE_06_STOCK_CONTRACT_SPECS
+DOCUMENT TITLE: Stock Derivatives Specifications
+CATEGORY: Exchange Rulebook
+========================================
+Clause 6.1: Eligibility Criteria
+Stocks must meet minimum liquidity and market capitalization thresholds for 6 consecutive months to be eligible for the F&O segment. The stock's average daily market capitalization must be at least 5 billion currency units.
+
+Clause 6.2: Delivery Settlement
+All open stock futures and option contracts at expiry are settled through physical delivery of shares. Cash settlement is not permitted for stock derivatives at expiry.

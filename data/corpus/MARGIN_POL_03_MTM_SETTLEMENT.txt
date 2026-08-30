@@ -1,0 +1,9 @@
+DOCUMENT ID: MARGIN_POL_03_MTM_SETTLEMENT
+DOCUMENT TITLE: Mark-to-Market (MTM) Policy
+CATEGORY: Margin & F&O Policy
+========================================
+Clause 3.1: Daily MTM Calculation
+All open derivative positions are marked to market at the end of every trading day based on the closing price. If the daily MTM loss exceeds 50% of the client's available cash balance, an immediate warning alert is sent.
+
+Clause 3.2: Immediate MTM Cutoff
+If the accumulated MTM loss reaches 80% of the client's total ledger margin balance, the brokerage system automatically initiates square-off of open positions.

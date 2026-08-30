@@ -1,0 +1,6 @@
+DOCUMENT ID: EXCH_RULE_08_POST_CLOSE_SESSION
+DOCUMENT TITLE: Post-Close Session Rules
+CATEGORY: Exchange Rulebook
+========================================
+Clause 8.1: Eligible Orders
+Only market orders are permitted during the post-close session from 15:40 hours to 16:00 hours. Orders are matched against the closing price discovered in the normal market session.

@@ -1,0 +1,9 @@
+DOCUMENT ID: EXCH_RULE_07_PRE_OPEN_SESSION
+DOCUMENT TITLE: Pre-Open Session Mechanics
+CATEGORY: Exchange Rulebook
+========================================
+Clause 7.1: Order Entry Period
+The pre-open session order entry, modification, and cancellation period is from 09:00 hours to 09:08 hours.
+
+Clause 7.2: Order Matching Period
+The order matching and price discovery period starts at 09:08 hours and completes at 09:12 hours. Trading buffer time is from 09:12 hours to 09:15 hours.

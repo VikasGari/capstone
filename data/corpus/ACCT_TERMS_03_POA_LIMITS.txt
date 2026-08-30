@@ -1,0 +1,9 @@
+DOCUMENT ID: ACCT_TERMS_03_POA_LIMITS
+DOCUMENT TITLE: Power of Attorney (POA) Terms
+CATEGORY: Account-Opening & Trading Terms
+========================================
+Clause 3.1: POA Purpose
+The Power of Attorney (POA) or Demat Debit and Pledge Instruction (DDPI) granted by the client is limited. It allows the broker to debit shares from the client's demat account only to fulfill pay-in obligations for trades executed by the client.
+
+Clause 3.2: Transfer Prohibitions
+The broker is strictly prohibited from transferring shares from the client demat account for proprietary trading or to other client accounts.

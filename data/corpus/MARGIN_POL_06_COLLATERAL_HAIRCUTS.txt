@@ -1,0 +1,9 @@
+DOCUMENT ID: MARGIN_POL_06_COLLATERAL_HAIRCUTS
+DOCUMENT TITLE: Collateral and Haircuts
+CATEGORY: Margin & F&O Policy
+========================================
+Clause 6.1: Approved Collateral List
+Clients can pledge approved liquid stocks and mutual funds to get margin benefits. 
+
+Clause 6.2: Haircut Ratios
+Pledged collaterals are subject to value haircuts. Group I stocks are subject to a minimum haircut of 15%. Liquid mutual funds are subject to a 10% haircut. Equity mutual funds are subject to a 20% haircut.

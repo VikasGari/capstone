@@ -1,0 +1,9 @@
+DOCUMENT ID: SETTLE_PROC_02_PAYIN_PAYOUT
+DOCUMENT TITLE: Pay-In and Pay-Out Timelines
+CATEGORY: Settlement and Payout Procedures
+========================================
+Clause 2.1: Fund Pay-In (Deposit)
+Deposits made via UPI or Net Banking reflect instantly in the trading ledger, within a maximum processing window of 10 minutes.
+
+Clause 2.2: Fund Pay-Out (Withdrawal)
+Withdrawal requests placed before 08:30 hours are processed and credited to the client's bank account on the same day by 14:00 hours. Requests placed after 08:30 hours are processed on the next working day.

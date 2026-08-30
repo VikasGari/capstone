@@ -1,0 +1,12 @@
+DOCUMENT ID: EXCH_RULE_02_ORDER_TYPES
+DOCUMENT TITLE: Supported Order Types
+CATEGORY: Exchange Rulebook
+========================================
+Clause 2.1: Limit and Market Orders
+Market orders execute immediately at the best available current price. Limit orders are placed in the order book with a specified maximum purchase price or minimum sales price.
+
+Clause 2.2: Stop-Loss Orders
+A stop-loss order becomes a market order once the trigger price is reached. For Stop-Loss Limit orders, once the trigger price is reached, it is placed as a limit order at the specified limit price.
+
+Clause 2.3: Disclosed Quantity Orders
+An investor can disclose only a part of the total order quantity to the market. The disclosed quantity must be at least 10% of the total order size and must not be less than the minimum lot size.

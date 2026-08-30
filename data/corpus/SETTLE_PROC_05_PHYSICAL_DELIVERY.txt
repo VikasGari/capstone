@@ -1,0 +1,6 @@
+DOCUMENT ID: SETTLE_PROC_05_PHYSICAL_DELIVERY
+DOCUMENT TITLE: Physical Delivery Rules
+CATEGORY: Settlement and Payout Procedures
+========================================
+Clause 5.1: Delivery Intent
+Clients with open stock derivatives positions must declare their delivery intent (willingness to give or take shares) by 11:00 hours on expiry day. Failure to declare intent leads to automated contract square-off.

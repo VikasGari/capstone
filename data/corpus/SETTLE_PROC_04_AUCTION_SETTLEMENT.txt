@@ -1,0 +1,9 @@
+DOCUMENT ID: SETTLE_PROC_04_AUCTION_SETTLEMENT
+DOCUMENT TITLE: Auction Settlement Rules
+CATEGORY: Settlement and Payout Procedures
+========================================
+Clause 4.1: Short Delivery Handling
+If a seller fails to deliver shares on T+1, the transaction is marked as a short delivery. The exchange conducts a buy-in auction on T+2 to procure the shares.
+
+Clause 4.2: Auction Pricing
+The shares are purchased in the auction at the best available price. The seller is charged the difference between the transaction price and the auction price, plus a penalty fee of 2.0% of the closing price.

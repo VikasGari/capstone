@@ -1,0 +1,15 @@
+DOCUMENT ID: EXCH_RULE_03_CIRCUIT_BREAKERS
+DOCUMENT TITLE: Market-Wide Circuit Breakers
+CATEGORY: Exchange Rulebook
+========================================
+Clause 3.1: Trigger Levels
+Market-wide circuit breakers are triggered by movement in either the Nifty 50 or Sensex index. The circuit breakers are set at three levels: 10%, 15%, and 20% index movement.
+
+Clause 3.2: Market Halt Duration
+- A 10% trigger before 13:00 hours results in a 45-minute market halt.
+- A 10% trigger at or after 13:00 hours and before 14:30 hours results in a 15-minute halt.
+- A 10% trigger at or after 14:30 hours results in no halt.
+- A 15% trigger before 13:00 hours results in a 1-hour 45-minute halt.
+- A 15% trigger at or after 13:00 hours and before 14:30 hours results in a 45-minute halt.
+- A 15% trigger at or after 14:30 hours halts trading for the remainder of the day.
+- A 20% trigger at any time halts trading for the rest of the day.
