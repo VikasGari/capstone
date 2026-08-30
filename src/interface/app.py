@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
-import streamlit as st
+import gradio as gr
 import requests
 from config.config_manager import ConfigManager
 
@@ -13,193 +13,111 @@ host = api_cfg.get("host", "127.0.0.1")
 port = int(api_cfg.get("port", 8000))
 api_url = f"http://{host}:{port}"
 
-st.set_page_config(
-    page_title="Brokerage Policy & Trading Rules Assistant",
-    page_icon="📈",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+def answer_query(query):
+    """Queries the FastAPI backend and formats the output into clean markdown."""
+    if not query.strip():
+        return "⚠️ Query cannot be empty. Please enter a question."
+        
+    try:
+        payload = {"query": query}
+        response = requests.post(f"{api_url}/query", json=payload)
+        
+        if response.status_code == 200:
+            data = response.json()
+            answer = data.get("answer", "")
+            is_suff = data.get("is_sufficient", False)
+            conf = data.get("grounding_confidence", 0.0)
+            rules = data.get("applicable_rules", [])
+            thresholds = data.get("thresholds_and_timelines", [])
+            actions = data.get("required_actions", [])
+            citations = data.get("citations", [])
+            
+            status_text = "✅ Grounded in Corpus" if is_suff else "❌ Abstained: Insufficient Context"
+            
+            # Format output markdown
+            md_output = f"## 🤖 Assistant Answer\n{answer}\n\n"
+            md_output += f"### 📊 Grounding Confidence: **{conf*100:.1f}%** ({status_text})\n\n"
+            
+            if rules or thresholds or actions:
+                md_output += "### 📋 Extracted Policy Details\n"
+                if rules:
+                    md_output += "**Applicable Rules:**\n" + "\n".join([f"- {r}" for r in rules]) + "\n\n"
+                if thresholds:
+                    md_output += "**Numerical Thresholds & Timelines:**\n" + "\n".join([f"- {t}" for t in thresholds]) + "\n\n"
+                if actions:
+                    md_output += "**Required Actions:**\n" + "\n".join([f"- {a}" for a in actions]) + "\n\n"
+            
+            if citations:
+                md_output += "### 📖 Reference Citations\n"
+                for idx, cit in enumerate(citations):
+                    md_output += f"**[{idx+1}] {cit['source']} — {cit['clause_id']}: {cit['clause_title']}**\n"
+                    md_output += f"> *\"... {cit['snippet']} ...\"*\n\n"
+                    
+            return md_output
+        elif response.status_code == 400:
+            return "⚠️ Invalid Request. Query cannot be empty."
+        else:
+            return f"❌ Backend Error ({response.status_code}): {response.text}"
+            
+    except Exception as e:
+        return f"❌ Communication Error: Could not connect to FastAPI backend at {api_url}.\nDetails: {e}"
 
-# Custom Styling for Premium Aesthetics (vibrant colors, clean cards, spacing)
-st.markdown("""
-<style>
-    .main-title {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #1E3A8A; /* Navy Blue */
-        margin-bottom: 0.5rem;
-    }
-    .subtitle {
-        font-size: 1.1rem;
-        color: #4B5563; /* Gray */
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background-color: #F3F4F6;
-        border-radius: 8px;
-        padding: 1rem;
-        border-left: 5px solid #3B82F6; /* Blue border */
-        margin-bottom: 1rem;
-    }
-    .citation-badge {
-        display: inline-block;
-        background-color: #DBEAFE;
-        color: #1E40AF;
-        font-size: 0.8rem;
-        font-weight: 600;
-        border-radius: 4px;
-        padding: 0.2rem 0.5rem;
-        margin-right: 0.5rem;
-        margin-bottom: 0.5rem;
-    }
-    .disclaimer-box {
-        font-size: 0.8rem;
-        color: #6B7280;
-        background-color: #FEF3C7; /* Amber warning */
-        padding: 0.75rem;
-        border-radius: 6px;
-        margin-top: 2rem;
-        border-left: 4px solid #F59E0B;
-    }
-    .highlight {
-        background-color: #FEF08A; /* Light Yellow highlight */
-        padding: 0.1rem 0.3rem;
-        border-radius: 3px;
-        font-weight: 500;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Sidebar - Diagnostics and Control
-with st.sidebar:
-    st.image("https://img.icons8.com/color/96/bullish.png", width=70)
-    st.header("Control Center")
-    st.info("Status: Decoupled FastAPI + Streamlit mode")
-    
-    st.markdown("---")
-    st.subheader("System Status")
-    
-    # Check health of backend FastAPI API
+def check_backend_status():
+    """Checks the health of the FastAPI backend."""
     try:
         health_resp = requests.get(f"{api_url}/health", timeout=2)
         if health_resp.status_code == 200 and health_resp.json().get("status") == "healthy":
-            st.success("FastAPI Backend: Online")
-        else:
-            st.warning("FastAPI Backend: Unhealthy status")
+            return "🟢 FastAPI Backend: Online"
+        return "🟡 FastAPI Backend: Unhealthy status"
     except Exception:
-        st.error("FastAPI Backend: Offline")
-        st.caption(f"Could not connect to backend server at {api_url}")
+        return f"🔴 FastAPI Backend: Offline (Could not connect at {api_url})"
+
+def trigger_ingestion():
+    """Triggers clean corpus ingestion in the backend."""
+    try:
+        resp = requests.post(f"{api_url}/ingest")
+        if resp.status_code == 200:
+            data = resp.json()
+            return f"✅ Ingestion successful! Ingested {data.get('chunks_ingested')} chunks."
+        return f"❌ Ingestion failed with status code: {resp.status_code}"
+    except Exception as e:
+        return f"❌ Error connecting to backend: {e}"
+
+# Build the Gradio blocks application
+with gr.Blocks(title="Brokerage Policy & Trading Rules Assistant", theme=gr.themes.Soft()) as demo:
+    gr.Markdown("# 📈 Brokerage Policy & Trading Rules Assistant")
+    gr.Markdown("A simple grounded question-answering assistant for trading policies, F&O margins, fees, and timelines.")
+    
+    with gr.Row():
+        query_input = gr.Textbox(
+            label="Ask a question about trading policies:",
+            placeholder="e.g., What is the margin requirement for trading index futures?",
+            lines=2
+        )
         
-    st.markdown("---")
-    st.subheader("Ingestion Management")
-    if st.button("Trigger Corpus Ingestion"):
-        with st.spinner("Re-indexing policy corpus..."):
-            try:
-                ingest_resp = requests.post(f"{api_url}/ingest")
-                if ingest_resp.status_code == 200:
-                    data = ingest_resp.json()
-                    st.success(f"Ingestion successful! Ingested {data.get('chunks_ingested')} chunks.")
-                else:
-                    st.error("Ingestion request failed.")
-            except Exception as e:
-                st.error(f"Error connecting to backend: {e}")
+    submit_btn = gr.Button("Analyze Query", variant="primary")
+    
+    output_md = gr.Markdown(value="*Results will appear here after you ask a question.*")
+    
+    # Register events
+    submit_btn.click(fn=answer_query, inputs=query_input, outputs=output_md)
+    query_input.submit(fn=answer_query, inputs=query_input, outputs=output_md)
+    
+    with gr.Accordion("System Settings & Diagnostics", open=False):
+        status_box = gr.Textbox(
+            label="Backend Connection Status",
+            value=check_backend_status(),
+            interactive=False
+        )
+        refresh_btn = gr.Button("Refresh Status")
+        refresh_btn.click(fn=check_backend_status, outputs=status_box)
+        
+        gr.Markdown("---")
+        gr.Markdown("### Ingestion Control")
+        ingest_btn = gr.Button("Trigger Corpus Re-Ingestion", variant="secondary")
+        ingest_status = gr.Markdown()
+        ingest_btn.click(fn=trigger_ingestion, outputs=ingest_status)
 
-# Main Layout
-st.markdown('<div class="main-title">Brokerage Rules & Trading Policy Assistant</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Grounded Question-Answering for Support and Operations Staff with Clause-Level Citations</div>', unsafe_allow_html=True)
-
-# Main Query Section
-query_input = st.text_input(
-    "Ask a question about trading policies, F&O margins, fees, account terms, or settlement timelines:",
-    placeholder="e.g., What is the margin requirement for trading index futures?",
-    key="user_query"
-)
-
-if query_input:
-    with st.spinner("Analyzing rules and generating grounded answer..."):
-        try:
-            # Query FastAPI Backend
-            payload = {"query": query_input}
-            response = requests.post(f"{api_url}/query", json=payload)
-            
-            if response.status_code == 200:
-                answer_data = response.json()
-                
-                # Setup 2 columns: Left for Answer, Right for Structured Metadata/Citations
-                col_left, col_right = st.columns([2, 1])
-                
-                with col_left:
-                    st.subheader("Answer")
-                    st.write(answer_data.get("answer"))
-                    
-                    # Highlighted Citations
-                    citations = answer_data.get("citations", [])
-                    if citations:
-                        st.markdown("---")
-                        st.subheader("Grounded Reference Snippets")
-                        for idx, cit in enumerate(citations):
-                            st.markdown(f"""
-                            <div style="background-color: #F9FAFB; padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem; border-left: 3px solid #3B82F6;">
-                                <span class="citation-badge">[{idx+1}] {cit['source']}</span>
-                                <b>{cit['clause_id']}: {cit['clause_title']}</b>
-                                <p style="font-style: italic; color: #374151; margin-top: 0.5rem; font-size: 0.95rem;">
-                                    "... {cit['snippet']} ..."
-                                </p>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            
-                with col_right:
-                    # Grounding Metrics Card
-                    is_suff = answer_data.get("is_sufficient", False)
-                    conf = answer_data.get("grounding_confidence", 0.0)
-                    
-                    st.subheader("Grounding Confidence")
-                    if is_suff:
-                        st.metric(label="Confidence Rating", value=f"{conf*100:.1f}%")
-                        st.success("Grounded in Corpus")
-                    else:
-                        st.metric(label="Confidence Rating", value="0.0%")
-                        st.error("Abstained: Insufficient Context")
-                        st.info("The query fell outside the scope of available exchange rules or margin policies.")
-
-                    # Structured Fields
-                    st.markdown("---")
-                    st.subheader("Extracted Rule Entities")
-                    
-                    # Rules
-                    rules = answer_data.get("applicable_rules", [])
-                    if rules:
-                        st.markdown("**Applicable Rules/Policies:**")
-                        for r in rules:
-                            st.write(f"- {r}")
-                            
-                    # Thresholds
-                    thresholds = answer_data.get("thresholds_and_timelines", [])
-                    if thresholds:
-                        st.markdown("**Numerical Thresholds & Timelines:**")
-                        for t in thresholds:
-                            st.write(f"- :orange[{t}]")
-                            
-                    # Required Actions
-                    actions = answer_data.get("required_actions", [])
-                    if actions:
-                        st.markdown("**Required Actions:**")
-                        for a in actions:
-                            st.write(f"- :red[{a}]")
-                            
-            elif response.status_code == 400:
-                st.error("Invalid Request. Query cannot be empty.")
-            else:
-                st.error(f"Backend Server Error ({response.status_code}): {response.json().get('detail')}")
-                
-        except Exception as e:
-            st.error("Communication Error: Could not reach the FastAPI Backend API.")
-            st.caption(f"Details: {e}")
-            st.info("Tip: Make sure the FastAPI backend is running via `python main.py --api` before querying.")
-
-# Disclaimer bottom notice
-st.markdown("""
-<div class="disclaimer-box">
-    <b>Legal Disclaimer:</b> This assistant retrieves rules, margins, and timeline procedures strictly from synthetic mock policies and exchange rulebooks. Generated contents are for educational and informational purposes only, and do not constitute financial, investment, transaction execution, or legal advice.
-</div>
-""", unsafe_allow_html=True)
+# Start the Gradio server
+if __name__ == "__main__":
+    demo.launch(server_name="127.0.0.1", server_port=8502)

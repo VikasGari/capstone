@@ -13,3 +13,4 @@ pyyaml
 python-dotenv
 requests
 pytest
+gradio
