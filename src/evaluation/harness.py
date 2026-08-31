@@ -9,10 +9,7 @@ from google.genai import types
 
 from config.config_manager import ConfigManager
 from src.ingestion.pipeline import IngestionPipeline
-from src.retrieval.hybrid import HybridRetriever
-from src.retrieval.reranker import CrossEncoderReranker
-from src.retrieval.transformer import QueryTransformer
-from src.generation import GroundedGenerator, GroundedAnswer
+from src.rag_pipeline import RAGPipeline
 from src.helpers import write_evaluation_reports
 
 class RagasMetricScore(BaseModel):
@@ -37,10 +34,8 @@ class RagasEvaluator:
         self.primary_model = gen_cfg.get("primary_model", "gemini-3.5-flash-lite")
         self.fallback_model = gen_cfg.get("fallback_model", "gemini-2.5-flash-lite")
 
-        self.transformer = QueryTransformer(self.config_manager)
-        self.retriever = HybridRetriever(self.config_manager)
-        self.reranker = CrossEncoderReranker(self.config_manager)
-        self.generator = GroundedGenerator(self.config_manager)
+        # Instantiate unified RAG execution orchestrator
+        self.rag_pipeline = RAGPipeline(self.config_manager)
 
         self.client = genai.Client(api_key=self.api_key) if self.api_key else None
         self.api_exhausted = False
@@ -63,18 +58,8 @@ class RagasEvaluator:
             ground_truth = entry["reference"]
             ac_id = entry.get("ac_id", "AC-02")
             
-            sub_queries = [question] if self.api_exhausted else self.transformer.transform(question)
-            
-            all_candidates = []
-            seen_ids = set()
-            for sq in sub_queries:
-                for cand in self.retriever.retrieve(sq):
-                    if cand["id"] not in seen_ids:
-                        seen_ids.add(cand["id"])
-                        all_candidates.append(cand)
-                        
-            reranked = self.reranker.rerank(question, all_candidates)
-            ans_obj = self.generator.generate(question, reranked, model_name=model_name)
+            # Call unified RAG execution pathway
+            ans_obj, reranked = self.rag_pipeline.run_query(question, model_name=model_name)
             
             results.append({
                 "question": question,
@@ -110,7 +95,6 @@ Contexts:
 Return JSON with keys: faithfulness, answer_relevancy, context_recall, context_precision
 """
         try:
-            # Use configured primary model for evaluation judges
             response = self.client.models.generate_content(
                 model=self.primary_model,
                 contents=prompt,
@@ -177,11 +161,11 @@ Return JSON with keys: faithfulness, answer_relevancy, context_recall, context_p
         # Ensure collection is loaded
         print("Checking database index...")
         try:
-            self.retriever._initialize_bm25()
+            self.rag_pipeline.retriever._initialize_bm25()
         except Exception:
             pipeline = IngestionPipeline(self.config_manager)
             pipeline.run()
-            self.retriever._initialize_bm25()
+            self.rag_pipeline.retriever._initialize_bm25()
 
         flash_results = self.run_pipeline_on_dataset(self.primary_model)
         flash_metrics = self.evaluate_results(flash_results)
