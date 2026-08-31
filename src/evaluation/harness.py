@@ -1,11 +1,10 @@
-import os
 import json
 import time
 from pathlib import Path
 import numpy as np
 from pydantic import BaseModel, Field
-from google import genai
-from google.genai import types
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import ChatPromptTemplate
 
 from config.config_manager import ConfigManager
 from src.ingestion.pipeline import IngestionPipeline
@@ -18,10 +17,26 @@ class RagasMetricScore(BaseModel):
     context_recall: float = Field(description="Score between 0.0 and 1.0 of ground truth facts recall.")
     context_precision: float = Field(description="Score between 0.0 and 1.0 of precision of retrieved contexts.")
 
+JUDGE_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", "You are an impartial RAG evaluation judge."),
+    ("human", """Rate these RAGAS metrics (scores 0.0 to 1.0) based strictly on context details:
+1. Faithfulness (answer grounded in Contexts)
+2. Answer Relevancy (addresses Question directly)
+3. Context Recall (Contexts contain Ground Truth facts)
+4. Context Precision (retrieved Contexts are highly relevant)
+
+Q: "{question}"
+A: "{answer}"
+GT: "{ground_truth}"
+Contexts:
+{context_block}
+""")
+])
+
 class RagasEvaluator:
     """
-    Simple evaluation harness for the Brokerage Assistant RAG pipeline.
-    Runs pipeline over data/golden_set.json, rates metrics using Gemini judge,
+    Evaluation harness for the Brokerage Assistant RAG pipeline.
+    Runs pipeline over data/golden_set.json, rates metrics using LangChain LCEL judge chain,
     and writes simple comparative reports under docs/.
     """
     def __init__(self, config_manager: ConfigManager = None):
@@ -37,8 +52,19 @@ class RagasEvaluator:
         # Instantiate unified RAG execution orchestrator
         self.rag_pipeline = RAGPipeline(self.config_manager)
 
-        self.client = genai.Client(api_key=self.api_key) if self.api_key else None
+        # Instantiate LangChain judge chain
+        self.judge_chain = None
         self.api_exhausted = False
+        if self.api_key:
+            try:
+                judge_llm = ChatGoogleGenerativeAI(
+                    model=self.primary_model,
+                    temperature=0.0,
+                    google_api_key=self.api_key
+                ).with_structured_output(RagasMetricScore)
+                self.judge_chain = JUDGE_PROMPT | judge_llm
+            except Exception as e:
+                print(f"Warning: Failed to initialize LangChain judge chain: {e}")
 
     def load_golden_set(self) -> list[dict]:
         """Loads the golden evaluation set."""
@@ -74,38 +100,20 @@ class RagasEvaluator:
         return results
 
     def _judge_with_gemini(self, question: str, answer: str, contexts: list[str], ground_truth: str) -> RagasMetricScore:
-        """Uses Gemini to rate the RAGAS metrics for a single QA result."""
-        if not self.client or self.api_exhausted:
+        """Uses LangChain judge chain to rate the RAGAS metrics for a single QA result."""
+        if not self.judge_chain or self.api_exhausted:
             return self._fallback_metrics(question, answer, contexts, ground_truth)
 
         context_block = "\n\n".join([f"Context [{i+1}]: {c}" for i, c in enumerate(contexts)])
-        prompt = f"""
-Rate these RAGAS metrics (scores 0.0 to 1.0) based strictly on context details:
-1. Faithfulness (answer grounded in Contexts)
-2. Answer Relevancy (addresses Question directly)
-3. Context Recall (Contexts contain Ground Truth facts)
-4. Context Precision (retrieved Contexts are highly relevant)
-
-Q: "{question}"
-A: "{answer}"
-GT: "{ground_truth}"
-Contexts:
-{context_block}
-
-Return JSON with keys: faithfulness, answer_relevancy, context_recall, context_precision
-"""
+        payload = {
+            "question": question,
+            "answer": answer,
+            "ground_truth": ground_truth,
+            "context_block": context_block
+        }
         try:
-            response = self.client.models.generate_content(
-                model=self.primary_model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=RagasMetricScore,
-                    temperature=0.0
-                )
-            )
-            data = json.loads(response.text.strip())
-            return RagasMetricScore(**data)
+            score: RagasMetricScore = self.judge_chain.invoke(payload)
+            return score
         except Exception:
             return self._fallback_metrics(question, answer, contexts, ground_truth)
 
