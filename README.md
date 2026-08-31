@@ -4,9 +4,9 @@ A grounded Retrieval-Augmented Generation (RAG) assistant for Support and Operat
 
 ---
 
-## 🚀 Quick Start (Single-Command Launch)
+## 🚀 Quick Start (Single-Command Entrypoint)
 
-The application starts both the ingestion pipeline and the unified web frontend + backend API server from a single command.
+The application provides a unified single CLI entrypoint (`main.py`) for running the server, executing evaluation comparisons, triggering ingestion, and running CLI queries.
 
 ### 1. Installation & Environment Setup
 
@@ -24,27 +24,45 @@ Create a `.env` file in the root directory (based on `.env.example`) and fill in
 GEMINI_API_KEY="your-google-gemini-api-key-here"
 ```
 
-### 3. Launch Unified Server
-Run the main script to trigger document ingestion and launch the server:
+### 3. Launch Modes (`main.py`)
+
+#### A. Launch Server & Frontend (Default Mode)
+Runs automated ingestion checks and starts both the FastAPI REST endpoints and interactive Gradio UI:
 ```powershell
 python main.py
 ```
-* **Ingestion:** Automatically indexes exchange rulebooks and brokerage margin policies into a persisted Chroma vector index (idempotent).
-* **Unified Service:** Launches a Uvicorn process hosting the FastAPI endpoints (e.g. `/query`, `/health`, `/ingest`) and mounts the interactive Gradio UI directly at the root path.
+* **Ingestion:** Automatically indexes exchange rulebooks and brokerage margin policies into a persisted FAISS vector index (idempotent).
+* **Unified Service:** Launches Uvicorn hosting FastAPI endpoints (`/query`, `/health`, `/ingest`) and mounts the interactive Gradio UI.
 * **Access URL:** Open your browser and navigate to **`http://localhost:8000/`**.
+
+#### B. Run RAGAS Evaluation Comparison
+Executes comparative scoring (Faithfulness, Answer Relevancy, Recall, Precision) over the golden set using rate-limiting guardrails:
+```powershell
+python main.py --eval
+```
+* Generates the consolidated report at [`docs/eval_report.md`](file:///d:/VS%20Code/Capstone/docs/eval_report.md).
+
+#### C. Ingest Documents Only
+Re-indexes policy documents in `data/corpus/` into FAISS:
+```powershell
+python main.py --ingest
+```
+
+#### D. Run Direct CLI Query
+Queries the RAG pipeline directly from the command line:
+```powershell
+python main.py --query "What is the pre-open session order entry window?"
+```
 
 ---
 
-## 📊 Evaluation & Model Comparisons
+## 📊 Configuration Centralization (`config/config.yaml`)
 
-To run RAGAS metric scoring (Faithfulness, Answer Relevancy, Recall, and Precision) on the golden dataset and compile model performance comparisons:
-
-```powershell
-python run_eval.py
-```
-This writes simple, structured reports to the following paths:
-* `docs/eval_report.md`: Grounding metrics and failure taxonomy.
-* `docs/model_comparison.md`: LLM selection justification.
+All system parameters are controlled strictly via [`config/config.yaml`](file:///d:/VS%20Code/Capstone/config/config.yaml):
+* **Embedding & Reranker Models:** Open-source local models (`sentence-transformers/all-MiniLM-L6-v2` & `cross-encoder/ms-marco-MiniLM-L-6-v2`).
+* **LLM Selection & Fallbacks:** Primary model (`gemini-3.5-flash-lite`) with LCEL structured fallback (`gemini-3.1-flash-lite`).
+* **Rate Limiting Guardrails:** `rate_limit_delay_seconds` (e.g. `4.0` for 15 RPM limit, or `null` to disable).
+* **Refusal & Disclaimer Text:** Externalized compliance domain refusal and legal disclaimer prompts.
 
 ---
 
@@ -60,11 +78,12 @@ pytest
 ## 📂 Project Directory Layout
 
 * `config/`: Contains `config.yaml` and the `ConfigManager` configuration loader.
-* `data/`: Stores synthetic policy text source documents, `golden_set.json` evaluation queries, and persistent Chroma database files.
-* `docs/`: Holds technical Rationales, Business Cases, and Evaluation Reports.
-* `src/`: Package code modules:
-  * `ingestion/`: Idempotent document text ingestion pipelines.
-  * `retrieval/`: Decoupled BM25, Semantic search, and Hybrid RRF fusion.
-  * `generation/`: Modular Pydantic schemas, prompts, and generator clients.
-  * `interface/`: Unified FastAPI and Gradio application files.
+* `data/`: Stores synthetic policy text source documents, `golden_set.json` evaluation queries, and persistent FAISS index files.
+* `docs/`: Holds technical specifications ([`acceptance-criteria.md`](file:///d:/VS%20Code/Capstone/docs/acceptance-criteria.md)), evaluation reports ([`eval_report.md`](file:///d:/VS%20Code/Capstone/docs/eval_report.md)), and walkthroughs.
+* `src/`: Package code modules (all files $\le 150$ lines):
+  * `ingestion/`: Idempotent document text ingestion & clause parser.
+  * `retrieval/`: Decoupled BM25, Semantic search, Hybrid RRF fusion, and Cross-Encoder reranker.
+  * `generation/`: Modular Pydantic schemas, LangChain LCEL prompts, and grounded generator clients.
+  * `evaluation/`: RAGAS evaluation harness and LLM judge.
+  * `interface/`: Unified FastAPI and Gradio web interface.
 * `tests/`: Automated pytest unit test suite.
