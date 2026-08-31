@@ -37,6 +37,42 @@ class GroundedGenerator:
         else:
             print("Warning: GEMINI_API_KEY not found in environment. GroundedGenerator will fail safely on all generation calls.")
 
+    def _create_refusal_answer(self, answer_text: str) -> GroundedAnswer:
+        """Helper to construct a standard GroundedAnswer refusal response."""
+        return GroundedAnswer(
+            answer=answer_text,
+            citations=[],
+            applicable_rules=[],
+            thresholds_and_timelines=[],
+            required_actions=[],
+            grounding_confidence=0.0,
+            is_sufficient=False
+        )
+
+    def _call_gemini_api(self, model_name: str, prompt: str, temperature: float) -> GroundedAnswer:
+        """Calls Gemini API with structured schema and parses/processes the response."""
+        response = self.client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=GroundedAnswer,
+                temperature=temperature
+            )
+        )
+        text = response.text.strip()
+        ans_dict = json.loads(text)
+        
+        # Enforce schema validation
+        grounded_ans = GroundedAnswer(**ans_dict)
+        
+        # Apply standard non-advisory disclaimer
+        disclaimer = "\n\n*Disclaimer: This information is derived from brokerage and exchange policy documents for informational purposes only. It does not constitute financial, investment, or legal advice.*"
+        if grounded_ans.is_sufficient and disclaimer not in grounded_ans.answer:
+            grounded_ans.answer += disclaimer
+            
+        return grounded_ans
+
     def generate(self, query: str, retrieved_chunks: list[dict], model_name: str = None) -> GroundedAnswer:
         """
         Generates structured grounded answers, citations, and rules.
@@ -47,64 +83,24 @@ class GroundedGenerator:
         
         # Guardrail: Check if we have any retrieved context
         if not retrieved_chunks:
-            return GroundedAnswer(
-                answer=refusal_msg,
-                citations=[],
-                applicable_rules=[],
-                thresholds_and_timelines=[],
-                required_actions=[],
-                grounding_confidence=0.0,
-                is_sufficient=False
-            )
+            return self._create_refusal_answer(refusal_msg)
+            
+        # Safe offline fallback if no client exists
+        if not self.client:
+            return self._create_refusal_answer("Error: Gemini API Client not initialized. Please verify GEMINI_API_KEY environment variable.")
             
         prompt = get_generation_prompt(query, retrieved_chunks, refusal_msg)
 
         # Decide which model to use
-        if model_name is None:
-            model_name = self.primary_model
-            
+        primary_model = model_name or self.primary_model
         max_retries = int(self.max_retries)
         temperature = float(self.temperature)
         
-        # Safe offline fallback if no client exists
-        if not self.client:
-            return GroundedAnswer(
-                answer="Error: Gemini API Client not initialized. Please verify GEMINI_API_KEY environment variable.",
-                citations=[],
-                applicable_rules=[],
-                thresholds_and_timelines=[],
-                required_actions=[],
-                grounding_confidence=0.0,
-                is_sufficient=False
-            )
-
         # Retry loop for resilience (NFR-05)
         last_error = None
         for attempt in range(max_retries):
             try:
-                response = self.client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        response_schema=GroundedAnswer,
-                        temperature=temperature
-                    )
-                )
-                
-                text = response.text.strip()
-                ans_dict = json.loads(text)
-                
-                # Enforce Pydantic validation on parsed dictionary
-                grounded_ans = GroundedAnswer(**ans_dict)
-                
-                # Post-processing: append standard disclaimer to answer text
-                disclaimer = "\n\n*Disclaimer: This information is derived from brokerage and exchange policy documents for informational purposes only. It does not constitute financial, investment, or legal advice.*"
-                if grounded_ans.is_sufficient and disclaimer not in grounded_ans.answer:
-                    grounded_ans.answer += disclaimer
-                    
-                return grounded_ans
-                
+                return self._call_gemini_api(primary_model, prompt, temperature)
             except Exception as e:
                 last_error = e
                 print(f"API Attempt {attempt+1} failed with error: {e}. Retrying...")
@@ -115,34 +111,14 @@ class GroundedGenerator:
         
         # If primary failed, we try a single attempt with fallback model
         fallback_model = self.fallback_model
-        if model_name != fallback_model:
+        if primary_model != fallback_model:
             try:
                 print(f"Attempting fallback model: {fallback_model}")
-                response = self.client.models.generate_content(
-                    model=fallback_model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        response_schema=GroundedAnswer,
-                        temperature=temperature
-                    )
-                )
-                ans_dict = json.loads(response.text.strip())
-                grounded_ans = GroundedAnswer(**ans_dict)
-                disclaimer = "\n\n*Disclaimer: This information is derived from brokerage and exchange policy documents for informational purposes only. It does not constitute financial, investment, or legal advice.*"
-                if grounded_ans.is_sufficient and disclaimer not in grounded_ans.answer:
-                    grounded_ans.answer += disclaimer
-                return grounded_ans
+                return self._call_gemini_api(fallback_model, prompt, temperature)
             except Exception as fallback_err:
                 print(f"Fallback model also failed: {fallback_err}")
                 
         # Return generic safe error object rather than crashing
-        return GroundedAnswer(
-            answer=f"I apologize, but I am currently unable to process your request due to system connection errors: {str(last_error)}. Please try again shortly.",
-            citations=[],
-            applicable_rules=[],
-            thresholds_and_timelines=[],
-            required_actions=[],
-            grounding_confidence=0.0,
-            is_sufficient=False
+        return self._create_refusal_answer(
+            f"I apologize, but I am currently unable to process your request due to system connection errors: {str(last_error)}. Please try again shortly."
         )
