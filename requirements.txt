@@ -13,3 +13,5 @@ python-dotenv
 requests
 pytest
 gradio
+pypdf
+python-docx

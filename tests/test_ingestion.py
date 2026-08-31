@@ -1,9 +1,10 @@
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 from config.config_manager import ConfigManager
 from src.ingestion.pipeline import IngestionPipeline
 
-def test_parse_file():
+def test_parse_txt_file():
     # Create a temporary file mimicking a corpus document
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8") as tmp:
         tmp.write("DOCUMENT ID: EXCH_TEST_01\n")
@@ -36,6 +37,57 @@ def test_parse_file():
     finally:
         # Clean up temporary file
         tmp_path.unlink()
+
+def test_parse_docx_file():
+    import docx
+    
+    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+
+    try:
+        doc = docx.Document()
+        doc.add_paragraph("DOCUMENT ID: DOCX_TEST")
+        doc.add_paragraph("DOCUMENT TITLE: Docx Test Title")
+        doc.add_paragraph("CATEGORY: Docx Category")
+        doc.add_paragraph("========================================")
+        doc.add_paragraph("Clause 1.1: Docx Rule")
+        doc.add_paragraph("This is docx rule text.")
+        doc.save(tmp_path)
+        
+        pipeline = IngestionPipeline()
+        segments = pipeline.parse_file(tmp_path)
+        
+        assert len(segments) == 1
+        assert segments[0]["doc_id"] == "DOCX_TEST"
+        assert segments[0]["doc_title"] == "Docx Test Title"
+        assert segments[0]["clause_id"] == "Clause 1.1"
+        assert segments[0]["clause_title"] == "Docx Rule"
+        assert "This is docx rule text." in segments[0]["text"]
+    finally:
+        tmp_path.unlink()
+
+def test_parse_pdf_file_mock():
+    mock_reader = MagicMock()
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = """DOCUMENT ID: PDF_TEST
+DOCUMENT TITLE: PDF Test Title
+CATEGORY: PDF Category
+========================================
+Clause 1.1: PDF Rule
+This is PDF rule text.
+"""
+    mock_reader.pages = [mock_page]
+    
+    with patch("pypdf.PdfReader", return_value=mock_reader):
+        pipeline = IngestionPipeline()
+        segments = pipeline.parse_file(Path("dummy.pdf"))
+        
+        assert len(segments) == 1
+        assert segments[0]["doc_id"] == "PDF_TEST"
+        assert segments[0]["doc_title"] == "PDF Test Title"
+        assert segments[0]["clause_id"] == "Clause 1.1"
+        assert segments[0]["clause_title"] == "PDF Rule"
+        assert "This is PDF rule text." in segments[0]["text"]
 
 def test_ingestion_run():
     # Test that the pipeline can run over a temporary corpus

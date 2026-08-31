@@ -31,11 +31,34 @@ class IngestionPipeline:
     def parse_file(self, file_path: Path) -> list[dict]:
         """
         Parses a corpus document. Extracts global document headers and 
-        breaks the document content into clause-level segments.
+        breaks the document content into clause-level segments. Supports txt, pdf, and docx.
         """
+        suffix = file_path.suffix.lower()
+        content = ""
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
+            if suffix == ".txt":
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+            elif suffix == ".pdf":
+                import pypdf
+                reader = pypdf.PdfReader(file_path)
+                pages = []
+                for page in reader.pages:
+                    text = page.extract_text()
+                    if text:
+                        pages.append(text)
+                content = "\n".join(pages)
+            elif suffix == ".docx":
+                import docx
+                doc = docx.Document(file_path)
+                paragraphs = []
+                for para in doc.paragraphs:
+                    if para.text:
+                        paragraphs.append(para.text)
+                content = "\n".join(paragraphs)
+            else:
+                print(f"Warning: Unsupported file type {suffix} for {file_path}")
+                return []
         except Exception as e:
             print(f"Error reading file {file_path}: {e}")
             return []
@@ -121,7 +144,12 @@ class IngestionPipeline:
             raise FileNotFoundError(f"Corpus directory not found at: {corpus_path}")
             
         all_segments = []
-        for file_path in corpus_path.glob("*.txt"):
+        extensions = ["*.txt", "*.pdf", "*.docx"]
+        file_paths = []
+        for ext in extensions:
+            file_paths.extend(corpus_path.glob(ext))
+            
+        for file_path in file_paths:
             segments = self.parse_file(file_path)
             for seg in segments:
                 seg["source"] = file_path.name
