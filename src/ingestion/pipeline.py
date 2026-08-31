@@ -9,8 +9,9 @@ from config.config_manager import ConfigManager
 class IngestionPipeline:
     """
     Modular ingestion pipeline.
-    Parses synthetic policy documents, segments them logically into clauses,
+    Parses diverse policy documents, segments them logically into clauses/sections,
     pre-chunks them with titles, generates local embeddings, and stores them in FAISS.
+    General-purpose: adapts to unstructured text or different structural schemas.
     """
     def __init__(self, config_manager: ConfigManager = None):
         self.config_manager = config_manager or ConfigManager()
@@ -30,8 +31,9 @@ class IngestionPipeline:
 
     def parse_file(self, file_path: Path) -> list[dict]:
         """
-        Parses a corpus document. Extracts global document headers and 
-        breaks the document content into clause-level segments. Supports txt, pdf, and docx.
+        Parses a corpus document. Supports txt, pdf, and docx.
+        Extracts global document headers (with directory/filename fallbacks) and
+        breaks the document content into clause-level segments using multi-heading rules.
         """
         suffix = file_path.suffix.lower()
         content = ""
@@ -63,35 +65,57 @@ class IngestionPipeline:
             print(f"Error reading file {file_path}: {e}")
             return []
             
-        # Extract headers using regex
-        doc_id_match = re.search(r"DOCUMENT ID:\s*(.+)", content)
-        doc_title_match = re.search(r"DOCUMENT TITLE:\s*(.+)", content)
-        category_match = re.search(r"CATEGORY:\s*(.+)", content)
+        # Extract headers using case-insensitive regex search
+        doc_id_match = re.search(r"DOCUMENT ID:\s*(.+)", content, re.IGNORECASE)
+        doc_title_match = re.search(r"DOCUMENT TITLE:\s*(.+)", content, re.IGNORECASE)
+        category_match = re.search(r"CATEGORY:\s*(.+)", content, re.IGNORECASE)
         
-        doc_id = doc_id_match.group(1).strip() if doc_id_match else file_path.stem
-        doc_title = doc_title_match.group(1).strip() if doc_title_match else file_path.stem
-        doc_type = category_match.group(1).strip() if category_match else "General"
+        doc_id = doc_id_match.group(1).strip() if doc_id_match else file_path.stem.upper()
+        doc_title = doc_title_match.group(1).strip() if doc_title_match else file_path.stem.replace("_", " ").title()
         
-        # Split body content from header section using the divider
-        parts = content.split("="*40)
+        doc_type = "General"
+        if category_match:
+            doc_type = category_match.group(1).strip()
+        elif file_path.parent and file_path.parent.name:
+            parent_name = file_path.parent.name
+            doc_type = parent_name.replace("_", " ").title()
+        
+        # Split body content from header section using repeating symbol dividers
+        divider_pattern = r"\n[=\-_*]{10,}\n"
+        parts = re.split(divider_pattern, content)
         body = parts[1].strip() if len(parts) > 1 else content
         
         segments = []
         
-        # Split body content by 'Clause X.Y:' or 'Section X.Y:' patterns
-        pattern = r"(Clause\s+\d+\.\d+:|Section\s+\d+\.\d+:)"
-        splits = re.split(pattern, body)
+        # Detect headings at the beginning of a line (Clause/Section/Rule X.Y or numeric headings X.Y)
+        heading_pattern = r"(?:^|\n)(Clause\s+\d+(?:\.\d+)*[:\.]?|Section\s+\d+(?:\.\d+)*[:\.]?|Rule\s+\d+(?:\.\d+)*[:\.]?|\d+\.\d+[:\.-]?)(?=\s|\n|$)"
+        splits = re.split(heading_pattern, body)
         
-        # If no clause headers were detected, treat the entire body as a single segment
+        # If no clause headers were detected, segment by paragraphs as unstructured fallback
         if len(splits) <= 1:
-            segments.append({
-                "doc_id": doc_id,
-                "doc_title": doc_title,
-                "doc_type": doc_type,
-                "clause_id": "General",
-                "clause_title": "General",
-                "text": body.strip()
-            })
+            paragraphs = [p.strip() for p in body.split("\n\n") if p.strip()]
+            for p_idx, para in enumerate(paragraphs):
+                block_id = f"Block {p_idx+1}"
+                # Derive a meaningful title from first 50 chars of paragraph
+                block_title = para[:50].strip() if len(para) > 50 else para.strip()
+                segments.append({
+                    "doc_id": doc_id,
+                    "doc_title": doc_title,
+                    "doc_type": doc_type,
+                    "clause_id": block_id,
+                    "clause_title": block_title or "General",
+                    "text": f"[{doc_title} - {block_id} {block_title}] {para}"
+                })
+            # Fallback if text has no double newlines
+            if not segments:
+                segments.append({
+                    "doc_id": doc_id,
+                    "doc_title": doc_title,
+                    "doc_type": doc_type,
+                    "clause_id": "General",
+                    "clause_title": "General",
+                    "text": body.strip()
+                })
             return segments
             
         # Capture any text before the first clause header (like introductory paragraphs)
@@ -108,7 +132,7 @@ class IngestionPipeline:
             
         # Match each clause header to its following block of text
         for i in range(1, len(splits), 2):
-            clause_header = splits[i].strip()  # e.g., "Clause 1.1:"
+            clause_header = splits[i].strip().rstrip(":.")  # e.g., "Clause 1.1" or "1.1"
             clause_body = splits[i+1].strip() if i+1 < len(splits) else ""
             
             lines = [l.strip() for l in clause_body.split("\n") if l.strip()]
@@ -123,7 +147,7 @@ class IngestionPipeline:
                 "doc_id": doc_id,
                 "doc_title": doc_title,
                 "doc_type": doc_type,
-                "clause_id": clause_header.rstrip(":"),
+                "clause_id": clause_header,
                 "clause_title": clause_title,
                 "text": f"[{doc_title} - {clause_header} {clause_title}] {clause_text}"
             })

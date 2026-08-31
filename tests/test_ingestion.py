@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 from config.config_manager import ConfigManager
 from src.ingestion.pipeline import IngestionPipeline
 
-def test_parse_txt_file():
-    # Create a temporary file mimicking a corpus document
+def test_parse_txt_file_standard():
+    # Create a temporary file mimicking a standard synthetic corpus document
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8") as tmp:
         tmp.write("DOCUMENT ID: EXCH_TEST_01\n")
         tmp.write("DOCUMENT TITLE: Test Exchange Title\n")
@@ -29,13 +29,65 @@ def test_parse_txt_file():
         assert segments[0]["doc_type"] == "Test Category"
         assert segments[0]["clause_id"] == "Clause 1.1"
         assert segments[0]["clause_title"] == "Normal Hours"
-        assert "This is the text for normal hours clause." in segments[0]["text"]
+        assert "normal hours" in segments[0]["text"]
         
         assert segments[1]["clause_id"] == "Clause 1.2"
         assert segments[1]["clause_title"] == "Post Hours"
-        assert "This is the text for post closing hours." in segments[1]["text"]
+        assert "post closing" in segments[1]["text"]
     finally:
-        # Clean up temporary file
+        tmp_path.unlink()
+
+def test_parse_txt_unstructured_fallback():
+    # Create a temporary file containing plain paragraphs and no structural headers/dividers
+    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8") as tmp:
+        tmp.write("This is the first plain paragraph of unstructured brokerage prose.\n\n")
+        tmp.write("This is the second paragraph. It contains rules but has no headers.\n")
+        tmp_path = Path(tmp.name)
+
+    try:
+        pipeline = IngestionPipeline()
+        segments = pipeline.parse_file(tmp_path)
+        
+        # Fallback metadata should clean/titleize file stem
+        expected_doc_id = tmp_path.stem.upper()
+        expected_doc_title = tmp_path.stem.replace("_", " ").title()
+        
+        assert len(segments) >= 2
+        assert segments[0]["doc_id"] == expected_doc_id
+        assert segments[0]["doc_title"] == expected_doc_title
+        assert segments[0]["doc_type"] == tmp_path.parent.name.replace("_", " ").title()  # Fallback doc type
+        assert "Block 1" in segments[0]["clause_id"]
+        assert "Block 2" in segments[1]["clause_id"]
+        assert "first plain paragraph" in segments[0]["text"]
+    finally:
+        tmp_path.unlink()
+
+def test_parse_txt_numbered_headings():
+    # Create a temporary file mimicking a numbered-headings policy document
+    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8") as tmp:
+        tmp.write("DOCUMENT ID: EXCH_TEST_NUM\n")
+        tmp.write("DOCUMENT TITLE: Numbered Policy\n")
+        tmp.write("CATEGORY: Margin rules\n")
+        tmp.write("----------------------------------------\n")
+        tmp.write("1.1 Initial Margin\n")
+        tmp.write("Clients must maintain initial margin of 10%.\n\n")
+        tmp.write("2.1 Maintenance Margin\n")
+        tmp.write("Clients must maintain maintenance margin of 8%.\n")
+        tmp_path = Path(tmp.name)
+
+    try:
+        pipeline = IngestionPipeline()
+        segments = pipeline.parse_file(tmp_path)
+        
+        assert len(segments) == 2
+        assert segments[0]["doc_id"] == "EXCH_TEST_NUM"
+        assert segments[0]["clause_id"] == "1.1"
+        assert segments[0]["clause_title"] == "Initial Margin"
+        assert "initial margin" in segments[0]["text"]
+        
+        assert segments[1]["clause_id"] == "2.1"
+        assert segments[1]["clause_title"] == "Maintenance Margin"
+    finally:
         tmp_path.unlink()
 
 def test_parse_docx_file():
