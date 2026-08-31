@@ -2,6 +2,6 @@
 .env
 __pycache__/
 *.pyc
-data/chroma_db/
+data/faiss_index/
 .pytest_cache/
 *.log
