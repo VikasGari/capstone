@@ -21,6 +21,8 @@ class GroundedGenerator:
         self.fallback_model = gen_cfg.get("fallback_model")
         self.temperature = gen_cfg.get("temperature")
         self.max_retries = gen_cfg.get("max_retries")
+        self.refusal_message = gen_cfg.get("refusal_message")
+        self.disclaimer_text = gen_cfg.get("disclaimer_text")
         self.min_relevance_score = retrieval_cfg.get("min_relevance_score")
         
         # Initialize LangChain chat models if API key is present
@@ -29,7 +31,6 @@ class GroundedGenerator:
         
         if self.api_key:
             try:
-                # Primary model runnable with structured output
                 primary_llm = ChatGoogleGenerativeAI(
                     model=self.primary_model,
                     temperature=float(self.temperature),
@@ -37,7 +38,6 @@ class GroundedGenerator:
                     max_retries=int(self.max_retries)
                 ).with_structured_output(GroundedAnswer)
                 
-                # Fallback model runnable with structured output
                 fallback_llm = ChatGoogleGenerativeAI(
                     model=self.fallback_model,
                     temperature=float(self.temperature),
@@ -45,7 +45,6 @@ class GroundedGenerator:
                     max_retries=int(self.max_retries)
                 ).with_structured_output(GroundedAnswer)
                 
-                # Compose LCEL chain with automatic fallback orchestration
                 structured_model = primary_llm.with_fallbacks([fallback_llm])
                 self.chain = GENERATION_PROMPT | structured_model
             except Exception as e:
@@ -70,7 +69,7 @@ class GroundedGenerator:
         Generates structured grounded answers using LangChain LCEL chain.
         Fails safely on network errors or API exhaustion.
         """
-        refusal_msg = "I apologize, but I cannot find information in the available trading policies to answer your query. Please refer to the official exchange site or contact support."
+        refusal_msg = self.refusal_message
         
         # Guardrail 1: Empty context
         if not retrieved_chunks:
@@ -88,7 +87,6 @@ class GroundedGenerator:
         }
 
         try:
-            # If a specific custom model is requested (e.g. during evaluation model comparisons)
             if model_name and model_name != self.primary_model:
                 custom_llm = ChatGoogleGenerativeAI(
                     model=model_name,
@@ -99,11 +97,10 @@ class GroundedGenerator:
                 custom_chain = GENERATION_PROMPT | custom_llm
                 grounded_ans: GroundedAnswer = custom_chain.invoke(payload)
             else:
-                # Invoke the default LCEL fallback chain
                 grounded_ans: GroundedAnswer = self.chain.invoke(payload)
                 
-            # Apply standard non-advisory disclaimer
-            disclaimer = "\n\n*Disclaimer: This information is derived from brokerage and exchange policy documents for informational purposes only. It does not constitute financial, investment, or legal advice.*"
+            # Apply standard non-advisory disclaimer from config
+            disclaimer = self.disclaimer_text
             if grounded_ans.is_sufficient and disclaimer not in grounded_ans.answer:
                 grounded_ans.answer += disclaimer
                 

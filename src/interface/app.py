@@ -11,6 +11,7 @@ config_manager = ConfigManager()
 api_cfg = config_manager.get_section("api")
 host = api_cfg.get("host", "127.0.0.1")
 port = int(api_cfg.get("port", 8000))
+api_title = api_cfg.get("title", "Brokerage Policy & Trading Rules Assistant")
 api_url = f"http://{host}:{port}"
 
 def answer_query(query):
@@ -84,8 +85,8 @@ def trigger_ingestion():
         return f"❌ Error connecting to backend: {e}"
 
 # Build the Gradio blocks application
-with gr.Blocks(title="Brokerage Policy & Trading Rules Assistant", theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# 📈 Brokerage Policy & Trading Rules Assistant")
+with gr.Blocks(title=api_title, theme=gr.themes.Soft()) as demo:
+    gr.Markdown(f"# 📈 {api_title}")
     gr.Markdown("A simple grounded question-answering assistant for trading policies, F&O margins, fees, and timelines.")
     
     with gr.Row():

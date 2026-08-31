@@ -14,7 +14,9 @@ class RagasEvaluator:
     """
     def __init__(self, config_manager: ConfigManager = None):
         self.config_manager = config_manager or ConfigManager()
-        self.golden_set_path = Path(self.config_manager.get_section("paths")["golden_set_path"])
+        paths_cfg = self.config_manager.get_section("paths")
+        self.golden_set_path = Path(paths_cfg["golden_set_path"])
+        self.docs_directory = Path(paths_cfg.get("docs_directory", "docs"))
         self.api_key = self.config_manager.get_env_var("GEMINI_API_KEY")
 
         # Load models dynamically from configuration settings
@@ -79,7 +81,7 @@ class RagasEvaluator:
         pro_failures = self.judge.analyze_failures(pro_results)
 
         write_evaluation_reports(
-            Path("docs"),
+            self.docs_directory,
             self.primary_model,
             self.fallback_model,
             flash_metrics,
