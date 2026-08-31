@@ -9,15 +9,15 @@ class QueryTransformer:
     Transforms, expands, or decomposes multi-part and ambiguous user queries
     before retrieval, using Google Gemini.
     """
-    def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
+    def __init__(self, config_manager: ConfigManager = None):
         self.config_manager = config_manager or ConfigManager()
         
         # Load configuration section directly from global config
         gen_cfg = self.config_manager.get_section("generation")
         
-        # Extract configurations directly into distinct properties (no self.config dict lookup)
-        self.model_name = local_overrides.get("model_name") if local_overrides and "model_name" in local_overrides else gen_cfg.get("primary_model")
-        self.temperature = local_overrides.get("temperature") if local_overrides and "temperature" in local_overrides else gen_cfg.get("temperature")
+        # Extract configurations directly into distinct properties
+        self.model_name = gen_cfg.get("primary_model")
+        self.temperature = gen_cfg.get("temperature")
             
         # Initialize Google GenAI client if API key is present
         self.api_key = self.config_manager.get_env_var("GEMINI_API_KEY")

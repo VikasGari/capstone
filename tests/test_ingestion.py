@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from config.config_manager import ConfigManager
 from src.ingestion.pipeline import IngestionPipeline
 
 def test_parse_file():
@@ -53,12 +54,11 @@ def test_ingestion_run():
             
         # Run ingestion with temporary paths
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as persist_dir:
-            local_overrides = {
-                "persist_directory": persist_dir,
-                "collection_name": "test_collection",
-                "corpus_directory": temp_dir
-            }
-            pipeline = IngestionPipeline(local_overrides=local_overrides)
+            config_manager = ConfigManager()
+            config_manager.config["vector_store"]["persist_directory"] = persist_dir
+            config_manager.config["paths"]["corpus_directory"] = temp_dir
+            
+            pipeline = IngestionPipeline(config_manager=config_manager)
             num_chunks = pipeline.run()
             
             assert num_chunks == 1

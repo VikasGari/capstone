@@ -31,6 +31,11 @@ class RagasEvaluator:
         self.golden_set_path = Path(self.config_manager.get_section("paths")["golden_set_path"])
         self.api_key = self.config_manager.get_env_var("GEMINI_API_KEY")
 
+        # Load models dynamically from configuration settings
+        gen_cfg = self.config_manager.get_section("generation")
+        self.primary_model = gen_cfg.get("primary_model", "gemini-3.5-flash-lite")
+        self.fallback_model = gen_cfg.get("fallback_model", "gemini-2.5-flash-lite")
+
         self.transformer = QueryTransformer(self.config_manager)
         self.retriever = HybridRetriever(self.config_manager)
         self.reranker = CrossEncoderReranker(self.config_manager)
@@ -104,8 +109,9 @@ Contexts:
 Return JSON with keys: faithfulness, answer_relevancy, context_recall, context_precision
 """
         try:
+            # Use configured primary model for evaluation judges
             response = self.client.models.generate_content(
-                model="gemini-3.5-flash",
+                model=self.primary_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
@@ -176,11 +182,11 @@ Return JSON with keys: faithfulness, answer_relevancy, context_recall, context_p
             pipeline.run()
             self.retriever._initialize_bm25()
 
-        flash_results = self.run_pipeline_on_dataset("gemini-3.5-flash-lite")
+        flash_results = self.run_pipeline_on_dataset(self.primary_model)
         flash_metrics = self.evaluate_results(flash_results)
         flash_failures = self.analyze_failures(flash_results)
         
-        pro_results = self.run_pipeline_on_dataset("gemini-2.5-flash-lite")
+        pro_results = self.run_pipeline_on_dataset(self.fallback_model)
         pro_metrics = self.evaluate_results(pro_results)
         pro_failures = self.analyze_failures(pro_results)
 
@@ -190,7 +196,7 @@ Return JSON with keys: faithfulness, answer_relevancy, context_recall, context_p
             f.write(f"""# RAGAS Evaluation Report
 
 ## 1. Metric Summary
-| Metric | Gemini 3.5 Flash Lite | Gemini 2.5 Flash Lite |
+| Metric | {self.primary_model} | {self.fallback_model} |
 |---|---|---|
 | Faithfulness | {flash_metrics['faithfulness']:.3f} | {pro_metrics['faithfulness']:.3f} |
 | Answer Relevancy | {flash_metrics['answer_relevancy']:.3f} | {pro_metrics['answer_relevancy']:.3f} |
@@ -198,8 +204,8 @@ Return JSON with keys: faithfulness, answer_relevancy, context_recall, context_p
 | Context Precision | {flash_metrics['context_precision']:.3f} | {pro_metrics['context_precision']:.3f} |
 
 ## 2. Failure Analysis
-- **3.5 Flash Lite Success:** {flash_failures['successful_runs']} / {len(flash_results)} ({flash_failures['successful_runs']/len(flash_results)*100:.1f}%)
-- **2.5 Flash Lite Success:** {pro_failures['successful_runs']} / {len(pro_results)} ({pro_failures['successful_runs']/len(pro_results)*100:.1f}%)
+- **{self.primary_model} Success:** {flash_failures['successful_runs']} / {len(flash_results)} ({flash_failures['successful_runs']/len(flash_results)*100:.1f}%)
+- **{self.fallback_model} Success:** {pro_failures['successful_runs']} / {len(pro_results)} ({pro_failures['successful_runs']/len(pro_results)*100:.1f}%)
 """)
 
         # Write simple docs/model_comparison.md
@@ -208,10 +214,10 @@ Return JSON with keys: faithfulness, answer_relevancy, context_recall, context_p
             f.write(f"""# Model Comparison Report
 
 ## 1. Metric Comparison
-- **Gemini 3.5 Flash Lite:** Faithfulness={flash_metrics['faithfulness']:.2f}, Success={flash_failures['successful_runs']}/{len(flash_results)}
-- **Gemini 2.5 Flash Lite:** Faithfulness={pro_metrics['faithfulness']:.2f}, Success={pro_failures['successful_runs']}/{len(pro_results)}
+- **{self.primary_model}:** Faithfulness={flash_metrics['faithfulness']:.2f}, Success={flash_failures['successful_runs']}/{len(flash_results)}
+- **{self.fallback_model}:** Faithfulness={pro_metrics['faithfulness']:.2f}, Success={pro_failures['successful_runs']}/{len(pro_results)}
 
 ## 2. Recommendation
-Gemini 3.5 Flash Lite is selected as the primary generation model due to its fast execution and high grounding score.
+{self.primary_model} is selected as the primary generation model due to its performance.
 """)
         print("Comparison run completed. Simple reports written under docs/ folder.")

@@ -1,35 +1,59 @@
-import chromadb
 from config.config_manager import ConfigManager
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 from src.retrieval.bm25 import BM25Retriever
 from src.retrieval.semantic import SemanticRetriever
 
 class HybridRetriever:
     """
-    Orchestrates Vector semantic search and BM25 lexical search.
+    Orchestrates Vector semantic search and BM25 lexical search using FAISS.
     Fuses candidate rankings using Reciprocal Rank Fusion (RRF).
     """
-    def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
+    def __init__(self, config_manager: ConfigManager = None):
         self.config_manager = config_manager or ConfigManager()
         
         # Load configuration sections directly from global config
         vstore_cfg = self.config_manager.get_section("vector_store")
         retrieval_cfg = self.config_manager.get_section("retrieval")
+        embedding_cfg = self.config_manager.get_section("embedding")
         
-        # Extract configurations directly into distinct properties (no self.config dict lookup)
-        self.persist_directory = local_overrides.get("persist_directory") if local_overrides and "persist_directory" in local_overrides else vstore_cfg.get("persist_directory")
-        self.collection_name = local_overrides.get("collection_name") if local_overrides and "collection_name" in local_overrides else vstore_cfg.get("collection_name")
-        self.top_k_semantic = local_overrides.get("top_k_semantic") if local_overrides and "top_k_semantic" in local_overrides else retrieval_cfg.get("top_k_semantic")
-        self.top_k_bm25 = local_overrides.get("top_k_bm25") if local_overrides and "top_k_bm25" in local_overrides else retrieval_cfg.get("top_k_bm25")
-        self.rrf_k = local_overrides.get("rrf_k") if local_overrides and "rrf_k" in local_overrides else retrieval_cfg.get("rrf_k")
+        # Extract configurations directly into distinct properties
+        self.persist_directory = vstore_cfg.get("persist_directory")
+        self.top_k_semantic = retrieval_cfg.get("top_k_semantic")
+        self.top_k_bm25 = retrieval_cfg.get("top_k_bm25")
+        self.rrf_k = retrieval_cfg.get("rrf_k")
+        self.model_name = embedding_cfg.get("model_name")
         
-        # Initialize the persistent client
-        self.client = chromadb.PersistentClient(path=self.persist_directory)
+        # Initialize local embeddings model
+        self.embeddings = HuggingFaceEmbeddings(model_name=self.model_name)
+        
+        # Load index
+        self.db = None
+        self.reload_db()
         
         # Instantiate subcomponents with clean direct parameter passing
-        self.bm25_retriever = BM25Retriever(self.client, self.collection_name, self.top_k_bm25)
-        self.semantic_retriever = SemanticRetriever(self.client, self.collection_name, self.top_k_semantic)
+        self.bm25_retriever = BM25Retriever(self.db, self.top_k_bm25)
+        self.semantic_retriever = SemanticRetriever(self.db, self.top_k_semantic)
 
-    # Expose helper to fit index (used in API and evaluation harness)
+    def reload_db(self):
+        """Loads or reloads the FAISS database index from the local disk path."""
+        try:
+            self.db = FAISS.load_local(
+                self.persist_directory,
+                self.embeddings,
+                allow_dangerous_deserialization=True
+            )
+            # Propagate to sub-retrievers if already initialized
+            if hasattr(self, "bm25_retriever") and self.bm25_retriever:
+                self.bm25_retriever.db = self.db
+                self.bm25_retriever.bm25 = None
+                self.bm25_retriever.corpus_chunks = []
+            if hasattr(self, "semantic_retriever") and self.semantic_retriever:
+                self.semantic_retriever.db = self.db
+            print(f"FAISS index successfully loaded from {self.persist_directory}.")
+        except Exception as e:
+            print(f"Warning: Could not load FAISS index from {self.persist_directory}: {e}")
+
     def _initialize_bm25(self):
         self.bm25_retriever._initialize_bm25()
 

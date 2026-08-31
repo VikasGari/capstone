@@ -1,7 +1,7 @@
 google-genai
 langchain
 langchain-google-genai
-chromadb
+faiss-cpu
 sentence-transformers
 rank_bm25
 ragas

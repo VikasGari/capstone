@@ -1,18 +1,18 @@
 import os
 import re
 from pathlib import Path
-import chromadb
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 from config.config_manager import ConfigManager
 
 class IngestionPipeline:
     """
     Modular ingestion pipeline.
     Parses synthetic policy documents, segments them logically into clauses,
-    pre-chunks them with titles, generates local embeddings, and stores them in Chroma.
+    pre-chunks them with titles, generates local embeddings, and stores them in FAISS.
     """
-    def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
+    def __init__(self, config_manager: ConfigManager = None):
         self.config_manager = config_manager or ConfigManager()
         
         # Fetch configuration sections directly from global config
@@ -21,13 +21,12 @@ class IngestionPipeline:
         chunking_cfg = self.config_manager.get_section("chunking")
         paths_cfg = self.config_manager.get_section("paths")
         
-        # Extract configurations directly into distinct properties (no self.config dict lookup)
-        self.model_name = local_overrides.get("model_name") if local_overrides and "model_name" in local_overrides else embedding_cfg.get("model_name")
-        self.persist_directory = local_overrides.get("persist_directory") if local_overrides and "persist_directory" in local_overrides else vstore_cfg.get("persist_directory")
-        self.collection_name = local_overrides.get("collection_name") if local_overrides and "collection_name" in local_overrides else vstore_cfg.get("collection_name")
-        self.chunk_size = local_overrides.get("chunk_size") if local_overrides and "chunk_size" in local_overrides else chunking_cfg.get("chunk_size")
-        self.chunk_overlap = local_overrides.get("chunk_overlap") if local_overrides and "chunk_overlap" in local_overrides else chunking_cfg.get("chunk_overlap")
-        self.corpus_directory = local_overrides.get("corpus_directory") if local_overrides and "corpus_directory" in local_overrides else paths_cfg.get("corpus_directory")
+        # Extract configurations directly into distinct properties
+        self.model_name = embedding_cfg.get("model_name")
+        self.persist_directory = vstore_cfg.get("persist_directory")
+        self.chunk_size = chunking_cfg.get("chunk_size")
+        self.chunk_overlap = chunking_cfg.get("chunk_overlap")
+        self.corpus_directory = paths_cfg.get("corpus_directory")
 
     def parse_file(self, file_path: Path) -> list[dict]:
         """
@@ -111,8 +110,8 @@ class IngestionPipeline:
     def run(self, corpus_dir: str = None) -> int:
         """
         Runs the ingestion pipeline. Loads all files, chunks them, computes 
-        embeddings, and populates the Chroma database.
-        Idempotent: Clears any existing collection data.
+        embeddings, and populates the FAISS database.
+        Idempotent: Clears any existing FAISS files.
         """
         if corpus_dir is None:
             corpus_dir = self.corpus_directory
@@ -146,58 +145,49 @@ class IngestionPipeline:
             chunks = splitter.split_text(seg["text"])
             for sub_idx, chunk in enumerate(chunks):
                 final_documents.append(chunk)
+                # Keep matching metadata schema
                 metadata = {
                     "source": seg["source"],
                     "doc_id": seg["doc_id"],
                     "doc_title": seg["doc_title"],
                     "doc_type": seg["doc_type"],
                     "clause_id": seg["clause_id"],
-                    "clause_title": seg["clause_title"]
+                    "clause_title": seg["clause_title"],
+                    "id": f"{seg['doc_id']}_{seg['clause_id']}_{sub_idx}"  # Store ID in metadata for FAISS mapping
                 }
                 final_metadatas.append(metadata)
-                final_ids.append(f"{seg['doc_id']}_{seg['clause_id']}_{sub_idx}")
+                final_ids.append(metadata["id"])
                 
-        # Initialize persistent Chroma client
+        # Initialize persistent folder path
         persist_dir = self.persist_directory
-        client = chromadb.PersistentClient(path=persist_dir)
+        persist_path = Path(persist_dir)
+        persist_path.mkdir(parents=True, exist_ok=True)
         
-        # Load local embedding model
+        # Recreate directory files to ensure idempotence
+        for filename in ["index.faiss", "index.pkl"]:
+            file_path = persist_path / filename
+            if file_path.exists():
+                try:
+                    file_path.unlink()
+                except Exception as e:
+                    print(f"Warning: Could not clear existing index file {file_path}: {e}")
+        
+        # Load local embedding model via LangChain Wrapper
         model_name = self.model_name
         print(f"Loading embedding model: {model_name}...")
-        embedding_model = SentenceTransformer(model_name)
+        embeddings = HuggingFaceEmbeddings(model_name=model_name)
         
-        # Wrapper for Chroma DB embedding API
-        class LocalEmbedder:
-            def __init__(self, model):
-                self.model = model
-            def __call__(self, input):
-                return self.model.encode(input, convert_to_numpy=True).tolist()
-                
-        embed_fn = LocalEmbedder(embedding_model)
-        
-        # Recreate collection to ensure idempotence
-        collection_name = self.collection_name
-        try:
-            client.delete_collection(collection_name)
-            print(f"Cleared existing collection '{collection_name}' for clean re-ingestion.")
-        except Exception:
-            pass
-            
-        collection = client.create_collection(
-            name=collection_name,
-            embedding_function=embed_fn
+        # Initialize and populate FAISS index
+        print(f"Building FAISS vector index on {len(final_documents)} chunks...")
+        db = FAISS.from_texts(
+            texts=final_documents,
+            embedding=embeddings,
+            metadatas=final_metadatas,
+            ids=final_ids
         )
         
-        # Insert in batches
-        batch_size = 100
-        for i in range(0, len(final_documents), batch_size):
-            end = i + batch_size
-            collection.add(
-                documents=final_documents[i:end],
-                metadatas=final_metadatas[i:end],
-                ids=final_ids[i:end]
-            )
-            
-        print(f"Ingested {len(final_documents)} chunks from {len(all_segments)} clauses into '{collection_name}' (Persisted at: {persist_dir})")
+        # Persist index to disk
+        db.save_local(persist_dir)
+        print(f"Ingested {len(final_documents)} chunks from {len(all_segments)} clauses into FAISS (Persisted at: {persist_dir})")
         
         return len(final_documents)

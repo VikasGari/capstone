@@ -1,45 +1,47 @@
 import re
 import numpy as np
-import chromadb
 from rank_bm25 import BM25Okapi
+from langchain_community.vectorstores import FAISS
 
 class BM25Retriever:
     """
     Encapsulates lexical search utilizing the BM25Okapi ranking model.
     Decoupled from ConfigManager: accepts parameters directly in constructor.
     """
-    def __init__(self, client: chromadb.PersistentClient, collection_name: str, top_k_bm25: int):
-        self.client = client
-        self.collection_name = collection_name
+    def __init__(self, db: FAISS, top_k_bm25: int):
+        self.db = db
         self.top_k_bm25 = int(top_k_bm25)
         self.bm25 = None
         self.corpus_chunks = []
 
     def _initialize_bm25(self):
-        """Loads all documents from Chroma collection and fits BM25."""
-        try:
-            collection = self.client.get_collection(self.collection_name)
-        except Exception as e:
-            print(f"Error fetching collection '{self.collection_name}'. Has ingestion run? {e}")
+        """Loads all documents from FAISS index and fits BM25."""
+        if self.db is None:
+            print("Warning: FAISS database index is not initialized. Cannot initialize BM25.")
             return
             
-        results = collection.get(include=["documents", "metadatas"])
-        if not results or not results["documents"]:
-            print(f"Warning: Chroma collection '{self.collection_name}' is empty. Cannot initialize BM25.")
+        try:
+            docstore = self.db.docstore._dict
+        except Exception as e:
+            print(f"Error accessing FAISS docstore: {e}")
+            return
+            
+        if not docstore:
+            print("Warning: FAISS docstore is empty. Cannot initialize BM25.")
             return
             
         self.corpus_chunks = []
         tokenized_corpus = []
         
-        for idx, doc in enumerate(results["documents"]):
+        for doc_id, doc in docstore.items():
             chunk_data = {
-                "id": results["ids"][idx],
-                "document": doc,
-                "metadata": results["metadatas"][idx]
+                "id": doc.metadata.get("id", doc_id),
+                "document": doc.page_content,
+                "metadata": doc.metadata
             }
             self.corpus_chunks.append(chunk_data)
             
-            tokens = self._tokenize(doc)
+            tokens = self._tokenize(doc.page_content)
             tokenized_corpus.append(tokens)
             
         if tokenized_corpus:

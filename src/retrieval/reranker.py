@@ -6,16 +6,16 @@ class CrossEncoderReranker:
     Reranks retrieved candidate chunks relative to a query using a local Cross-Encoder.
     This provides deeper contextual scoring compared to single-vector search.
     """
-    def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
+    def __init__(self, config_manager: ConfigManager = None):
         self.config_manager = config_manager or ConfigManager()
         
         # Load configuration sections from global config
         rerank_cfg = self.config_manager.get_section("reranker")
         retrieval_cfg = self.config_manager.get_section("retrieval")
         
-        # Extract configurations directly into distinct properties (no self.config dict lookup)
-        self.model_name = local_overrides.get("model_name") if local_overrides and "model_name" in local_overrides else rerank_cfg.get("model_name")
-        self.rerank_top_k = local_overrides.get("rerank_top_k") if local_overrides and "rerank_top_k" in local_overrides else retrieval_cfg.get("rerank_top_k")
+        # Extract configurations directly into distinct properties
+        self.model_name = rerank_cfg.get("model_name")
+        self.rerank_top_k = retrieval_cfg.get("rerank_top_k")
             
         # Initialize CrossEncoder model lazily
         self.model = None

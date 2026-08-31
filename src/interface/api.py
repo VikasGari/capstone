@@ -82,9 +82,8 @@ def run_ingest():
     try:
         num_chunks = pipeline.run()
         
-        # Force BM25 retriever to reload the index next time it is queried
-        retriever.bm25 = None
-        retriever.corpus_chunks = []
+        # Reload the new FAISS index from disk
+        retriever.reload_db()
         
         return IngestResponse(status="success", chunks_ingested=num_chunks)
     except Exception as e:
@@ -106,6 +105,9 @@ app = gr.mount_gradio_app(app, demo, path="/")
 
 def start_server():
     """Starts the unified FastAPI + Gradio server."""
+    # Ensure retriever loads the index that was built by pipeline.run() in main.py
+    retriever.reload_db()
+    
     api_cfg = config_manager.get_section("api")
     host = api_cfg.get("host", "127.0.0.1")
     port = int(api_cfg.get("port", 8000))

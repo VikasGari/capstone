@@ -12,19 +12,19 @@ class GroundedGenerator:
     Enforces Pydantic structured output utilizing Gemini.
     Implements retries and safe fallback responses.
     """
-    def __init__(self, config_manager: ConfigManager = None, local_overrides: dict = None):
+    def __init__(self, config_manager: ConfigManager = None):
         self.config_manager = config_manager or ConfigManager()
         
         # Load configuration sections from global config
         gen_cfg = self.config_manager.get_section("generation")
         retrieval_cfg = self.config_manager.get_section("retrieval")
         
-        # Extract configurations directly into distinct properties (no self.config dict lookup)
-        self.primary_model = local_overrides.get("primary_model") if local_overrides and "primary_model" in local_overrides else gen_cfg.get("primary_model")
-        self.fallback_model = local_overrides.get("fallback_model") if local_overrides and "fallback_model" in local_overrides else gen_cfg.get("fallback_model")
-        self.temperature = local_overrides.get("temperature") if local_overrides and "temperature" in local_overrides else gen_cfg.get("temperature")
-        self.max_retries = local_overrides.get("max_retries") if local_overrides and "max_retries" in local_overrides else gen_cfg.get("max_retries")
-        self.min_relevance_score = local_overrides.get("min_relevance_score") if local_overrides and "min_relevance_score" in local_overrides else retrieval_cfg.get("min_relevance_score")
+        # Extract configurations directly into distinct properties
+        self.primary_model = gen_cfg.get("primary_model")
+        self.fallback_model = gen_cfg.get("fallback_model")
+        self.temperature = gen_cfg.get("temperature")
+        self.max_retries = gen_cfg.get("max_retries")
+        self.min_relevance_score = retrieval_cfg.get("min_relevance_score")
         
         # Initialize Google GenAI client if API key is present
         self.api_key = self.config_manager.get_env_var("GEMINI_API_KEY")

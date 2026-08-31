@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from config.config_manager import ConfigManager
 from src.ingestion.pipeline import IngestionPipeline
 from src.retrieval.hybrid import HybridRetriever
 from src.retrieval.reranker import CrossEncoderReranker
@@ -40,16 +41,15 @@ def test_hybrid_retrieval_and_reranking():
                 f.write(f"This is a dummy document number {i} to increase corpus size for lexical BM25 retrieval.\n")
                 
         # Ingest documents
-        local_overrides = {
-            "persist_directory": persist_dir,
-            "collection_name": "test_retrieval_collection",
-            "corpus_directory": corpus_dir
-        }
-        pipeline = IngestionPipeline(local_overrides=local_overrides)
+        config_manager = ConfigManager()
+        config_manager.config["vector_store"]["persist_directory"] = persist_dir
+        config_manager.config["paths"]["corpus_directory"] = corpus_dir
+        
+        pipeline = IngestionPipeline(config_manager=config_manager)
         pipeline.run()
         
         # Initialize HybridRetriever
-        retriever = HybridRetriever(local_overrides=local_overrides)
+        retriever = HybridRetriever(config_manager=config_manager)
         
         # 1. Test Semantic Search
         semantic_results = retriever.retrieve_semantic("When does payout of funds complete?", top_k=2)
@@ -66,7 +66,8 @@ def test_hybrid_retrieval_and_reranking():
         assert len(hybrid_results) > 0
         
         # 4. Test Reranking
-        reranker = CrossEncoderReranker(local_overrides={"rerank_top_k": 2})
+        config_manager.config["retrieval"]["rerank_top_k"] = 2
+        reranker = CrossEncoderReranker(config_manager=config_manager)
         reranked = reranker.rerank("When does payout of funds complete?", hybrid_results, top_k=2)
         assert len(reranked) > 0
         assert "rerank_score" in reranked[0]

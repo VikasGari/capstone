@@ -8,10 +8,9 @@ embedding:
 reranker:
   model_name: "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
-# Vector Store settings (Chroma In-Process)
+# Vector Store settings (FAISS In-Process)
 vector_store:
-  persist_directory: "data/chroma_db"
-  collection_name: "trading_policy_collection"
+  persist_directory: "data/faiss_index"
 
 # Ingestion & Chunking settings
 chunking:
