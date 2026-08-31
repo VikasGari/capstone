@@ -6,6 +6,8 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from config.config_manager import ConfigManager
 
+from src.helpers.document_loader import load_document
+
 class IngestionPipeline:
     """
     Modular ingestion pipeline.
@@ -35,34 +37,8 @@ class IngestionPipeline:
         Extracts global document headers (with directory/filename fallbacks) and
         breaks the document content into clause-level segments using multi-heading rules.
         """
-        suffix = file_path.suffix.lower()
-        content = ""
-        try:
-            if suffix == ".txt":
-                with open(file_path, "r", encoding="utf-8") as f:
-                    content = f.read()
-            elif suffix == ".pdf":
-                import pypdf
-                reader = pypdf.PdfReader(file_path)
-                pages = []
-                for page in reader.pages:
-                    text = page.extract_text()
-                    if text:
-                        pages.append(text)
-                content = "\n".join(pages)
-            elif suffix == ".docx":
-                import docx
-                doc = docx.Document(file_path)
-                paragraphs = []
-                for para in doc.paragraphs:
-                    if para.text:
-                        paragraphs.append(para.text)
-                content = "\n".join(paragraphs)
-            else:
-                print(f"Warning: Unsupported file type {suffix} for {file_path}")
-                return []
-        except Exception as e:
-            print(f"Error reading file {file_path}: {e}")
+        content = load_document(file_path)
+        if not content:
             return []
             
         # Extract headers using case-insensitive regex search

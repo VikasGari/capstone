@@ -1,3 +1,17 @@
+# Centralized Prompt Templates Repository
+
+QUERY_TRANSFORM_PROMPT = """
+Analyze the following user query asking about trading rules, brokerage fees, margins, or accounts.
+Decompose it into a list of 1 to 3 distinct search terms or sub-queries optimized for search index retrieval (BM25 and Vector search).
+Expand abbreviations like F&O (Futures & Options), MTM (Mark to Market), POA (Power of Attorney), KYC (Know Your Customer), or DP (Depository Participant) to their full terms.
+
+User Query: "{query}"
+
+Output the queries as a valid JSON list of strings. Do not add markdown code fences, backticks, or any conversational text.
+Example Output:
+["futures and options margin requirements", "span margin vs exposure margin"]
+"""
+
 def get_generation_prompt(query: str, retrieved_chunks: list[dict], refusal_msg: str) -> str:
     """Constructs the prompt string with Context Blocks and domain guardrails."""
     context_str = ""

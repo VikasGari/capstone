@@ -2,8 +2,9 @@ import re
 import numpy as np
 from rank_bm25 import BM25Okapi
 from langchain_community.vectorstores import FAISS
+from src.retrieval.base import BaseRetriever
 
-class BM25Retriever:
+class BM25Retriever(BaseRetriever):
     """
     Encapsulates lexical search utilizing the BM25Okapi ranking model.
     Decoupled from ConfigManager: accepts parameters directly in constructor.

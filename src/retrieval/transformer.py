@@ -3,6 +3,7 @@ import json
 from google import genai
 from google.genai import types
 from config.config_manager import ConfigManager
+from src.helpers import QUERY_TRANSFORM_PROMPT
 
 class QueryTransformer:
     """
@@ -39,17 +40,7 @@ class QueryTransformer:
         if not self.client:
             return [query]
             
-        prompt = f"""
-Analyze the following user query asking about trading rules, brokerage fees, margins, or accounts.
-Decompose it into a list of 1 to 3 distinct search terms or sub-queries optimized for search index retrieval (BM25 and Vector search).
-Expand abbreviations like F&O (Futures & Options), MTM (Mark to Market), POA (Power of Attorney), KYC (Know Your Customer), or DP (Depository Participant) to their full terms.
-
-User Query: "{query}"
-
-Output the queries as a valid JSON list of strings. Do not add markdown code fences, backticks, or any conversational text.
-Example Output:
-["futures and options margin requirements", "span margin vs exposure margin"]
-"""
+        prompt = QUERY_TRANSFORM_PROMPT.format(query=query)
         try:
             # Generate content using structured JSON mode
             response = self.client.models.generate_content(

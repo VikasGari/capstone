@@ -3,6 +3,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from src.retrieval.bm25 import BM25Retriever
 from src.retrieval.semantic import SemanticRetriever
+from src.helpers.math_utils import reciprocal_rank_fusion
 
 class HybridRetriever:
     """
@@ -92,37 +93,4 @@ class HybridRetriever:
         if rrf_k is None:
             rrf_k = self.rrf_k
             
-        # RRF formula: Score(d) = sum(1 / (rrf_k + rank_r(d)))
-        rrf_scores = {}
-        doc_details = {} # Store metadata and document text map
-        
-        # Helper to process results and assign rank-based RRF scores
-        def add_rrf_scores(results):
-            for rank, item in enumerate(results):
-                doc_id = item["id"]
-                if doc_id not in doc_details:
-                    doc_details[doc_id] = {
-                        "id": doc_id,
-                        "document": item["document"],
-                        "metadata": item["metadata"]
-                    }
-                # RRF score addition
-                rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + (1.0 / (rrf_k + (rank + 1)))
-                
-        add_rrf_scores(semantic_results)
-        add_rrf_scores(bm25_results)
-        
-        # Sort by RRF score descending
-        sorted_ids = sorted(rrf_scores.keys(), key=lambda x: rrf_scores[x], reverse=True)
-        
-        fused_results = []
-        for doc_id in sorted_ids:
-            doc = doc_details[doc_id]
-            fused_results.append({
-                "id": doc["id"],
-                "document": doc["document"],
-                "metadata": doc["metadata"],
-                "score": rrf_scores[doc_id]
-            })
-            
-        return fused_results
+        return reciprocal_rank_fusion([semantic_results, bm25_results], rrf_k)

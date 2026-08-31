@@ -4,7 +4,7 @@ from google import genai
 from google.genai import types
 from config.config_manager import ConfigManager
 from src.generation.schemas import GroundedAnswer, Citation
-from src.generation.prompts import get_generation_prompt
+from src.helpers import get_generation_prompt
 
 class GroundedGenerator:
     """

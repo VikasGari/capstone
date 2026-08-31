@@ -1,6 +1,8 @@
 from langchain_community.vectorstores import FAISS
+from src.retrieval.base import BaseRetriever
+from src.helpers.math_utils import l2_to_similarity
 
-class SemanticRetriever:
+class SemanticRetriever(BaseRetriever):
     """
     Encapsulates dense vector semantic search against the FAISS index.
     Decoupled from ConfigManager: accepts parameters directly in constructor.
@@ -10,7 +12,7 @@ class SemanticRetriever:
         self.top_k_semantic = int(top_k_semantic)
 
     def retrieve(self, query: str, top_k: int = None) -> list[dict]:
-        """Queries the FAISS index using semantic search."""
+        """Queries the FAISS index using semantic similarity search."""
         if self.db is None:
             print("Warning: FAISS database index is not initialized.")
             return []
@@ -30,6 +32,6 @@ class SemanticRetriever:
                 "id": doc.metadata.get("id", ""),
                 "document": doc.page_content,
                 "metadata": doc.metadata,
-                "score": float(1.0 / (1.0 + dist))
+                "score": l2_to_similarity(dist)
             })
         return retrieved

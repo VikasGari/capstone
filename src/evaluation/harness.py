@@ -13,6 +13,7 @@ from src.retrieval.hybrid import HybridRetriever
 from src.retrieval.reranker import CrossEncoderReranker
 from src.retrieval.transformer import QueryTransformer
 from src.generation import GroundedGenerator, GroundedAnswer
+from src.helpers import write_evaluation_reports
 
 class RagasMetricScore(BaseModel):
     faithfulness: float = Field(description="Score between 0.0 and 1.0 of grounding (1.0 = fully grounded, 0.0 = hallucinated).")
@@ -190,34 +191,12 @@ Return JSON with keys: faithfulness, answer_relevancy, context_recall, context_p
         pro_metrics = self.evaluate_results(pro_results)
         pro_failures = self.analyze_failures(pro_results)
 
-        # Write simple docs/eval_report.md
-        report_path = Path("docs/eval_report.md")
-        with open(report_path, "w", encoding="utf-8") as f:
-            f.write(f"""# RAGAS Evaluation Report
-
-## 1. Metric Summary
-| Metric | {self.primary_model} | {self.fallback_model} |
-|---|---|---|
-| Faithfulness | {flash_metrics['faithfulness']:.3f} | {pro_metrics['faithfulness']:.3f} |
-| Answer Relevancy | {flash_metrics['answer_relevancy']:.3f} | {pro_metrics['answer_relevancy']:.3f} |
-| Context Recall | {flash_metrics['context_recall']:.3f} | {pro_metrics['context_recall']:.3f} |
-| Context Precision | {flash_metrics['context_precision']:.3f} | {pro_metrics['context_precision']:.3f} |
-
-## 2. Failure Analysis
-- **{self.primary_model} Success:** {flash_failures['successful_runs']} / {len(flash_results)} ({flash_failures['successful_runs']/len(flash_results)*100:.1f}%)
-- **{self.fallback_model} Success:** {pro_failures['successful_runs']} / {len(pro_results)} ({pro_failures['successful_runs']/len(pro_results)*100:.1f}%)
-""")
-
-        # Write simple docs/model_comparison.md
-        comp_path = Path("docs/model_comparison.md")
-        with open(comp_path, "w", encoding="utf-8") as f:
-            f.write(f"""# Model Comparison Report
-
-## 1. Metric Comparison
-- **{self.primary_model}:** Faithfulness={flash_metrics['faithfulness']:.2f}, Success={flash_failures['successful_runs']}/{len(flash_results)}
-- **{self.fallback_model}:** Faithfulness={pro_metrics['faithfulness']:.2f}, Success={pro_failures['successful_runs']}/{len(pro_results)}
-
-## 2. Recommendation
-{self.primary_model} is selected as the primary generation model due to its performance.
-""")
-        print("Comparison run completed. Simple reports written under docs/ folder.")
+        write_evaluation_reports(
+            Path("docs"),
+            self.primary_model,
+            self.fallback_model,
+            flash_metrics,
+            flash_failures,
+            pro_metrics,
+            pro_failures
+        )
