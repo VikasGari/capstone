@@ -1,8 +1,10 @@
 import difflib
+import time
 import numpy as np
 from pydantic import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
+from config.config_manager import ConfigManager
 
 class RagasMetricScore(BaseModel):
     faithfulness: float = Field(description="Score between 0.0 and 1.0 of grounding (1.0 = fully grounded, 0.0 = hallucinated).")
@@ -30,11 +32,16 @@ class RagasJudge:
     """
     Evaluates individual QA outputs against ground truth references and context blocks.
     Computes RAGAS metrics via LangChain LCEL judge chains with deterministic fallbacks.
+    Respects rate limiting settings configured in config.yaml.
     """
-    def __init__(self, judge_model: str, api_key: str = None):
+    def __init__(self, judge_model: str, api_key: str = None, config_manager: ConfigManager = None):
         self.judge_model = judge_model
         self.api_key = api_key
+        self.config_manager = config_manager or ConfigManager()
         self.judge_chain = None
+        
+        gen_cfg = self.config_manager.get_section("generation")
+        self.rate_limit_delay = gen_cfg.get("rate_limit_delay_seconds")
         
         if self.api_key:
             try:
@@ -86,6 +93,11 @@ class RagasJudge:
             rec_scores.append(score.context_recall)
             prec_scores.append(score.context_precision)
             print(f"[{idx+1}/{len(pipeline_results)}] Rated: F={score.faithfulness:.2f} | R={score.answer_relevancy:.2f}")
+            
+            # Rate limiting guardrail
+            if self.rate_limit_delay is not None and float(self.rate_limit_delay) > 0:
+                time.sleep(float(self.rate_limit_delay))
+                
         return {
             "faithfulness": float(np.mean(faith_scores)),
             "answer_relevancy": float(np.mean(rel_scores)),

@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 from config.config_manager import ConfigManager
 from src.ingestion.pipeline import IngestionPipeline
@@ -19,14 +20,15 @@ class RagasEvaluator:
         self.docs_directory = Path(paths_cfg.get("docs_directory", "docs"))
         self.api_key = self.config_manager.get_env_var("GEMINI_API_KEY")
 
-        # Load models dynamically from configuration settings
+        # Load models and rate limiting settings from config
         gen_cfg = self.config_manager.get_section("generation")
         self.primary_model = gen_cfg.get("primary_model", "gemini-3.5-flash-lite")
         self.fallback_model = gen_cfg.get("fallback_model", "gemini-2.5-flash-lite")
+        self.rate_limit_delay = gen_cfg.get("rate_limit_delay_seconds")
 
         # Instantiate unified RAG execution orchestrator and Judge
         self.rag_pipeline = RAGPipeline(self.config_manager)
-        self.judge = RagasJudge(self.primary_model, self.api_key)
+        self.judge = RagasJudge(self.primary_model, self.api_key, self.config_manager)
 
     def load_golden_set(self) -> list[dict]:
         """Loads the golden evaluation set."""
@@ -59,11 +61,15 @@ class RagasEvaluator:
                 "confidence": ans_obj.grounding_confidence
             })
             print(f"[{idx+1}/{len(golden_set)}] Processed query.")
+            
+            # Rate limiting guardrail: sleep if delay parameter is configured (non-null and > 0)
+            if self.rate_limit_delay is not None and float(self.rate_limit_delay) > 0:
+                time.sleep(float(self.rate_limit_delay))
+                
         return results
 
     def run_comparison(self):
         """Runs evaluation comparisons on candidate models and commits clean, simple reports."""
-        # Ensure collection is loaded
         print("Checking database index...")
         try:
             self.rag_pipeline.retriever._initialize_bm25()
