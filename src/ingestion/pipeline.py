@@ -1,11 +1,9 @@
-import os
 import re
 from pathlib import Path
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from config.config_manager import ConfigManager
-
 from src.helpers.document_loader import load_document
 
 class IngestionPipeline:
@@ -31,17 +29,8 @@ class IngestionPipeline:
         self.chunk_overlap = chunking_cfg.get("chunk_overlap")
         self.corpus_directory = paths_cfg.get("corpus_directory")
 
-    def parse_file(self, file_path: Path) -> list[dict]:
-        """
-        Parses a corpus document. Supports txt, pdf, and docx.
-        Extracts global document headers (with directory/filename fallbacks) and
-        breaks the document content into clause-level segments using multi-heading rules.
-        """
-        content = load_document(file_path)
-        if not content:
-            return []
-            
-        # Extract headers using case-insensitive regex search
+    def _extract_document_metadata(self, content: str, file_path: Path) -> tuple[str, str, str]:
+        """Extracts document ID, title, and type from text headers or path fallbacks."""
         doc_id_match = re.search(r"DOCUMENT ID:\s*(.+)", content, re.IGNORECASE)
         doc_title_match = re.search(r"DOCUMENT TITLE:\s*(.+)", content, re.IGNORECASE)
         category_match = re.search(r"CATEGORY:\s*(.+)", content, re.IGNORECASE)
@@ -55,6 +44,41 @@ class IngestionPipeline:
         elif file_path.parent and file_path.parent.name:
             parent_name = file_path.parent.name
             doc_type = parent_name.replace("_", " ").title()
+            
+        return doc_id, doc_title, doc_type
+
+    def _create_segment(
+        self,
+        doc_id: str,
+        doc_title: str,
+        doc_type: str,
+        clause_id: str,
+        clause_title: str,
+        text: str,
+        prefix_context: bool = True
+    ) -> dict:
+        """Constructs a normalized segment dictionary."""
+        formatted_text = f"[{doc_title} - {clause_id} {clause_title}] {text}" if prefix_context else text
+        return {
+            "doc_id": doc_id,
+            "doc_title": doc_title,
+            "doc_type": doc_type,
+            "clause_id": clause_id,
+            "clause_title": clause_title or "General",
+            "text": formatted_text
+        }
+
+    def parse_file(self, file_path: Path) -> list[dict]:
+        """
+        Parses a corpus document. Supports txt, pdf, and docx.
+        Extracts global document headers (with directory/filename fallbacks) and
+        breaks the document content into clause-level segments using multi-heading rules.
+        """
+        content = load_document(file_path)
+        if not content:
+            return []
+            
+        doc_id, doc_title, doc_type = self._extract_document_metadata(content, file_path)
         
         # Split body content from header section using repeating symbol dividers
         divider_pattern = r"\n[=\-_*]{10,}\n"
@@ -72,43 +96,26 @@ class IngestionPipeline:
             paragraphs = [p.strip() for p in body.split("\n\n") if p.strip()]
             for p_idx, para in enumerate(paragraphs):
                 block_id = f"Block {p_idx+1}"
-                # Derive a meaningful title from first 50 chars of paragraph
                 block_title = para[:50].strip() if len(para) > 50 else para.strip()
-                segments.append({
-                    "doc_id": doc_id,
-                    "doc_title": doc_title,
-                    "doc_type": doc_type,
-                    "clause_id": block_id,
-                    "clause_title": block_title or "General",
-                    "text": f"[{doc_title} - {block_id} {block_title}] {para}"
-                })
-            # Fallback if text has no double newlines
+                segments.append(
+                    self._create_segment(doc_id, doc_title, doc_type, block_id, block_title, para)
+                )
             if not segments:
-                segments.append({
-                    "doc_id": doc_id,
-                    "doc_title": doc_title,
-                    "doc_type": doc_type,
-                    "clause_id": "General",
-                    "clause_title": "General",
-                    "text": body.strip()
-                })
+                segments.append(
+                    self._create_segment(doc_id, doc_title, doc_type, "General", "General", body.strip(), prefix_context=False)
+                )
             return segments
             
         # Capture any text before the first clause header (like introductory paragraphs)
         intro_text = splits[0].strip()
         if intro_text:
-            segments.append({
-                "doc_id": doc_id,
-                "doc_title": doc_title,
-                "doc_type": doc_type,
-                "clause_id": "Introduction",
-                "clause_title": "Introduction",
-                "text": intro_text
-            })
+            segments.append(
+                self._create_segment(doc_id, doc_title, doc_type, "Introduction", "Introduction", intro_text, prefix_context=False)
+            )
             
         # Match each clause header to its following block of text
         for i in range(1, len(splits), 2):
-            clause_header = splits[i].strip().rstrip(":.")  # e.g., "Clause 1.1" or "1.1"
+            clause_header = splits[i].strip().rstrip(":.")
             clause_body = splits[i+1].strip() if i+1 < len(splits) else ""
             
             lines = [l.strip() for l in clause_body.split("\n") if l.strip()]
@@ -119,16 +126,22 @@ class IngestionPipeline:
                 clause_title = lines[0]
                 clause_text = "\n".join(lines[1:]) if len(lines) > 1 else lines[0]
                 
-            segments.append({
-                "doc_id": doc_id,
-                "doc_title": doc_title,
-                "doc_type": doc_type,
-                "clause_id": clause_header,
-                "clause_title": clause_title,
-                "text": f"[{doc_title} - {clause_header} {clause_title}] {clause_text}"
-            })
+            segments.append(
+                self._create_segment(doc_id, doc_title, doc_type, clause_header, clause_title, clause_text)
+            )
             
         return segments
+
+    def _clear_existing_index(self, persist_path: Path):
+        """Cleans up previous FAISS index files to ensure idempotence."""
+        persist_path.mkdir(parents=True, exist_ok=True)
+        for filename in ["index.faiss", "index.pkl"]:
+            file_path = persist_path / filename
+            if file_path.exists():
+                try:
+                    file_path.unlink()
+                except Exception as e:
+                    print(f"Warning: Could not clear existing index file {file_path}: {e}")
 
     def run(self, corpus_dir: str = None) -> int:
         """
@@ -173,7 +186,6 @@ class IngestionPipeline:
             chunks = splitter.split_text(seg["text"])
             for sub_idx, chunk in enumerate(chunks):
                 final_documents.append(chunk)
-                # Keep matching metadata schema
                 metadata = {
                     "source": seg["source"],
                     "doc_id": seg["doc_id"],
@@ -181,29 +193,17 @@ class IngestionPipeline:
                     "doc_type": seg["doc_type"],
                     "clause_id": seg["clause_id"],
                     "clause_title": seg["clause_title"],
-                    "id": f"{seg['doc_id']}_{seg['clause_id']}_{sub_idx}"  # Store ID in metadata for FAISS mapping
+                    "id": f"{seg['doc_id']}_{seg['clause_id']}_{sub_idx}"
                 }
                 final_metadatas.append(metadata)
                 final_ids.append(metadata["id"])
                 
-        # Initialize persistent folder path
-        persist_dir = self.persist_directory
-        persist_path = Path(persist_dir)
-        persist_path.mkdir(parents=True, exist_ok=True)
-        
-        # Recreate directory files to ensure idempotence
-        for filename in ["index.faiss", "index.pkl"]:
-            file_path = persist_path / filename
-            if file_path.exists():
-                try:
-                    file_path.unlink()
-                except Exception as e:
-                    print(f"Warning: Could not clear existing index file {file_path}: {e}")
+        persist_path = Path(self.persist_directory)
+        self._clear_existing_index(persist_path)
         
         # Load local embedding model via LangChain Wrapper
-        model_name = self.model_name
-        print(f"Loading embedding model: {model_name}...")
-        embeddings = HuggingFaceEmbeddings(model_name=model_name)
+        print(f"Loading embedding model: {self.model_name}...")
+        embeddings = HuggingFaceEmbeddings(model_name=self.model_name)
         
         # Initialize and populate FAISS index
         print(f"Building FAISS vector index on {len(final_documents)} chunks...")
@@ -214,8 +214,7 @@ class IngestionPipeline:
             ids=final_ids
         )
         
-        # Persist index to disk
-        db.save_local(persist_dir)
-        print(f"Ingested {len(final_documents)} chunks from {len(all_segments)} clauses into FAISS (Persisted at: {persist_dir})")
+        db.save_local(self.persist_directory)
+        print(f"Ingested {len(final_documents)} chunks from {len(all_segments)} clauses into FAISS (Persisted at: {self.persist_directory})")
         
         return len(final_documents)
