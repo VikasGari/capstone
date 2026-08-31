@@ -26,7 +26,7 @@ class RAGPipeline:
         """
         # Step 1: Query Transformation (Expansion)
         sub_queries = [query]
-        if self.transformer.client:
+        if self.transformer.chain:
             try:
                 sub_queries = self.transformer.transform(query)
             except Exception as e:

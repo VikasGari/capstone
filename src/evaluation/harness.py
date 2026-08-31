@@ -40,7 +40,7 @@ class RagasEvaluator:
     def run_pipeline_on_dataset(self, model_name: str) -> list[dict]:
         """Executes the RAG pipeline for all questions in the golden dataset."""
         golden_set = self.load_golden_set()
-        print(f"Running pipeline with '{model_name}' on {len(golden_set)} queries...")
+        print(f"Running pipeline with '{model_name}' on {len(golden_set)} queries...", flush=True)
         
         results = []
         for idx, entry in enumerate(golden_set):
@@ -60,7 +60,7 @@ class RagasEvaluator:
                 "ac_id": ac_id,
                 "confidence": ans_obj.grounding_confidence
             })
-            print(f"[{idx+1}/{len(golden_set)}] Processed query.")
+            print(f"[{idx+1}/{len(golden_set)}] Processed query: '{question[:45]}...'", flush=True)
             
             # Rate limiting guardrail: sleep if delay parameter is configured (non-null and > 0)
             if self.rate_limit_delay is not None and float(self.rate_limit_delay) > 0:
@@ -70,7 +70,7 @@ class RagasEvaluator:
 
     def run_comparison(self):
         """Runs evaluation comparisons on candidate models and commits clean, simple reports."""
-        print("Checking database index...")
+        print("Checking database index...", flush=True)
         try:
             self.rag_pipeline.retriever._initialize_bm25()
         except Exception:

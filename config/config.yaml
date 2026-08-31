@@ -30,10 +30,10 @@ retrieval:
 # LLM Generation & Evaluation Rate Limiting settings
 generation:
   primary_model: "gemini-3.5-flash-lite"
-  fallback_model: "gemini-2.5-flash-lite"
+  fallback_model: "gemini-3.1-flash-lite"
   temperature: 0.0
   max_retries: 3
-  rate_limit_delay_seconds: 4.0 # Delay in seconds between API calls (4.0s = 15 RPM). Set to null/None to disable rate limiting.
+  rate_limit_delay_seconds: 5.0 # Delay in seconds between API calls (4.0s = 15 RPM). Set to null/None to disable rate limiting.
   refusal_message: "I apologize, but I cannot find information in the available trading policies to answer your query. Please refer to the official exchange site or contact support."
   disclaimer_text: "\n\n*Disclaimer: This information is derived from brokerage and exchange policy documents for informational purposes only. It does not constitute financial, investment, or legal advice.*"
 

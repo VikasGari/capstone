@@ -92,7 +92,7 @@ class RagasJudge:
             rel_scores.append(score.answer_relevancy)
             rec_scores.append(score.context_recall)
             prec_scores.append(score.context_precision)
-            print(f"[{idx+1}/{len(pipeline_results)}] Rated: F={score.faithfulness:.2f} | R={score.answer_relevancy:.2f}")
+            print(f"[{idx+1}/{len(pipeline_results)}] Rated: F={score.faithfulness:.2f} | R={score.answer_relevancy:.2f}", flush=True)
             
             # Rate limiting guardrail
             if self.rate_limit_delay is not None and float(self.rate_limit_delay) > 0:
